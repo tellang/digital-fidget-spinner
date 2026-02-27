@@ -144,7 +144,8 @@ class ParticleSystem {
 
     // 배치 드로우: save/restore를 개별 호출 대신 한 번만
     ctx.save();
-    ctx.shadowBlur = 10;
+    // 파티클 수 100+ 시 shadowBlur 비활성화 (성능 우선)
+    ctx.shadowBlur = len > 100 ? 0 : 10;
     for (let i = 0; i < len; i++) {
       const p = this.particles[i];
       ctx.globalAlpha = p.alpha;
@@ -199,10 +200,15 @@ class ChainDisplay {
   }
 
   update(dt) {
-    for (let i = this.chains.length - 1; i >= 0; i--) {
+    // swap-and-pop: splice 대신 (GC 압력 감소)
+    let i = 0;
+    while (i < this.chains.length) {
       this.chains[i].timer += dt;
       if (this.chains[i].timer >= this.chains[i].duration) {
-        this.chains.splice(i, 1);
+        this.chains[i] = this.chains[this.chains.length - 1];
+        this.chains.pop();
+      } else {
+        i++;
       }
     }
   }
@@ -263,10 +269,15 @@ class FlashEffect {
   }
 
   update(dt) {
-    for (let i = this.flashes.length - 1; i >= 0; i--) {
+    // swap-and-pop: splice 대신 (GC 압력 감소)
+    let i = 0;
+    while (i < this.flashes.length) {
       this.flashes[i].timer += dt;
       if (this.flashes[i].timer >= this.flashes[i].duration) {
-        this.flashes.splice(i, 1);
+        this.flashes[i] = this.flashes[this.flashes.length - 1];
+        this.flashes.pop();
+      } else {
+        i++;
       }
     }
   }

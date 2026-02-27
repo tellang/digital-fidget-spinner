@@ -3,6 +3,7 @@
 class Game {
   constructor() {
     this.canvas = document.getElementById("canvas");
+    this.container = document.getElementById("game-container");
     this.renderer = new Renderer(this.canvas);
     this.board = new Board();
     this.particles = new ParticleSystem();
@@ -35,6 +36,12 @@ class Game {
     // 자동 페이드
     this.idleTime = 0;
     this.currentOpacity = 1.0;
+    this._prevOpacity = 1.0;
+    this._prevBoosted = false;
+
+    // 렌더 캐시: 고스트 Y, 현재 피스 셀
+    this._cachedGhostY = null;
+    this._cachedCells = null;
 
     // 설정 로드 (토스 스타일: 첫 실행은 시간대 기반 자동 테마)
     settings.load().then(() => {
@@ -131,7 +138,10 @@ class Game {
     } else {
       this.currentOpacity = 1.0;
     }
-    document.getElementById("game-container").style.opacity = this.currentOpacity;
+    if (this.currentOpacity !== this._prevOpacity) {
+      this._prevOpacity = this.currentOpacity;
+      this.container.style.opacity = this.currentOpacity;
+    }
 
     // 키 입력 시 AI 이동 즉시 완료 + 하드드롭
     if (drops > 0 && this.current) {
@@ -219,6 +229,8 @@ class Game {
     if (this.board.isValid(cells)) {
       this.current.x += dx;
       this.current.y += dy;
+      this._cachedGhostY = null;
+      this._cachedCells = null;
       return true;
     }
     return false;
@@ -244,6 +256,8 @@ class Game {
         this.current.x += dx;
         this.current.y -= dy;
         this.current.lastAction = "rotate";
+        this._cachedGhostY = null;
+        this._cachedCells = null;
         return true;
       }
     }
@@ -326,6 +340,8 @@ class Game {
   _nextPiece() {
     this.current = this.next;
     this.next = this._spawnPiece();
+    this._cachedGhostY = null;
+    this._cachedCells = null;
 
     if (!this.current) return;
 
@@ -395,6 +411,8 @@ class Game {
     this.gameOver = false;
     this.restartTimer = 0;
     this.moveQueue = [];
+    this._cachedGhostY = null;
+    this._cachedCells = null;
     this.bag = [];
     this._fillBag();
     this.next = this._spawnPiece();
@@ -402,24 +420,24 @@ class Game {
   }
 
   _render() {
-    // 부스트 시 컨테이너 글로우 변경
-    const container = document.getElementById("game-container");
+    // 부스트 시 컨테이너 글로우 변경 (변경 시에만 DOM 조작)
     const boost = this.input.getBoost();
-    if (boost > 2.5) {
-      container.classList.add("boosted");
-    } else {
-      container.classList.remove("boosted");
+    const boosted = boost > 2.5;
+    if (boosted !== this._prevBoosted) {
+      this._prevBoosted = boosted;
+      if (boosted) this.container.classList.add("boosted");
+      else this.container.classList.remove("boosted");
     }
 
-    // 현재 피스 셀 좌표
+    // 현재 피스 셀 좌표 (캐시 활용)
     let currentCells = null;
     let ghostCells = null;
     let currentColor = null;
 
     if (this.current) {
-      currentCells = getCells(this.current);
+      currentCells = this._cachedCells || (this._cachedCells = getCells(this.current));
       currentColor = C.COLORS[this.current.type];
-      const ghostY = getGhostY(this.board, this.current);
+      const ghostY = this._cachedGhostY !== null ? this._cachedGhostY : (this._cachedGhostY = getGhostY(this.board, this.current));
       ghostCells = C.SHAPES[this.current.type][this.current.rotation].map(([r, c]) => [
         r + ghostY,
         c + this.current.x,

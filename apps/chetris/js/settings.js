@@ -14,6 +14,7 @@ class Settings {
   };
   #listeners = new Set();
   #loaded = false;
+  #saveTimer = null;
 
   get(key) { return this.#data[key]; }
 
@@ -21,7 +22,15 @@ class Settings {
     if (this.#data[key] === value) return;
     this.#data[key] = value;
     this.#notify(key, value);
-    this.#save();
+    this.#debouncedSave();
+  }
+
+  #debouncedSave() {
+    if (this.#saveTimer) clearTimeout(this.#saveTimer);
+    this.#saveTimer = setTimeout(() => {
+      this.#saveTimer = null;
+      this.#save();
+    }, 300);
   }
 
   get all() { return { ...this.#data }; }

@@ -90,14 +90,19 @@ class ChatDisplay {
   }
 
   update(dt) {
-    for (let i = this.bubbles.length - 1; i >= 0; i--) {
+    // swap-and-pop: splice 대신 (GC 압력 감소)
+    let i = 0;
+    while (i < this.bubbles.length) {
       const b = this.bubbles[i];
       b.y += b.vy * dt;
       b.x += b.vx * dt;
       b.vy *= 0.99;
       b.life -= dt;
       if (b.life <= 0) {
-        this.bubbles.splice(i, 1);
+        this.bubbles[i] = this.bubbles[this.bubbles.length - 1];
+        this.bubbles.pop();
+      } else {
+        i++;
       }
     }
   }

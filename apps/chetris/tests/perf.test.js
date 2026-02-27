@@ -115,7 +115,7 @@ describe("성능 벤치마크", () => {
         `Game Boy alpha=1.0에서 save ${mockCtx._saves}번 (기대: 0)`);
     });
 
-    it("glow 테마에서 셀 당 save/restore 1회씩", () => {
+    it("glow 테마에서 오프스크린 캐시 후 main ctx는 drawImage 1회", () => {
       const canvas = new MockCanvas();
       const renderer = new Renderer(canvas);
       themes.apply("cyberpunk"); // glow: true
@@ -126,8 +126,12 @@ describe("성능 벤치마크", () => {
       }
       const mockCtx = new MockContext();
       renderer._drawPlacedBlocks(mockCtx, board);
-      assert.equal(mockCtx._saves, cellCount,
-        `Cyberpunk에서 ${cellCount}셀: save ${mockCtx._saves}번`);
+      // 오프스크린 캐시로 main ctx에는 save/restore 대신 drawImage 호출
+      assert.equal(mockCtx._saves, 0,
+        `Cyberpunk 오프스크린 캐시: main ctx save ${mockCtx._saves}번 (기대: 0)`);
+      // 캐시 버전 확인
+      assert.equal(renderer._boardBlocksVersion, board.version,
+        "캐시 버전이 보드 버전과 일치해야 한다");
     });
   });
 

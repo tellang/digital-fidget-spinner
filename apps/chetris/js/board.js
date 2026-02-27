@@ -5,6 +5,7 @@ class Board {
     for (let r = 0; r < C.ROWS; r++) {
       this.grid[r] = new Array(C.COLS).fill(0);
     }
+    this.version = 0; // 렌더 캐시 무효화용
   }
 
   isValid(cells) {
@@ -22,6 +23,7 @@ class Board {
         this.grid[r][c] = color;
       }
     }
+    this.version++;
   }
 
   clearLines() {
@@ -33,12 +35,12 @@ class Board {
     }
     if (rows.length === 0) return { count: 0, rows: [] };
 
-    for (const r of rows.sort((a, b) => a - b)) {
-      this.grid.splice(r, 1);
-    }
-    for (let i = 0; i < rows.length; i++) {
-      this.grid.unshift(new Array(C.COLS).fill(0));
-    }
+    // filter + padding: splice/unshift 대신 한 번에 재구성
+    const rowSet = new Set(rows);
+    const kept = this.grid.filter((_, r) => !rowSet.has(r));
+    const padding = Array.from({ length: rows.length }, () => new Array(C.COLS).fill(0));
+    this.grid = [...padding, ...kept];
+    this.version++;
     return { count: rows.length, rows };
   }
 

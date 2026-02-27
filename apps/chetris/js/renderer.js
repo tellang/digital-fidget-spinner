@@ -1,5 +1,8 @@
 // === 캔버스 렌더러 (네온/사이버펑크) ===
 
+// 색상 파싱 캐시 (메모이제이션)
+const _colorParseCache = new Map();
+
 class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -13,6 +16,11 @@ class Renderer {
     // 그리드 오프스크린 캐시 (테마 변경 시 무효화)
     this._gridCache = null;
     this._gridCacheTheme = null;
+
+    // 배치 블록 오프스크린 캐시
+    this._boardBlocksCache = null;
+    this._boardBlocksVersion = -1;
+    this._boardBlocksTheme = null;
 
     // 첫 프레임 렌더링 완료 플래그
     this._firstFrameDone = false;
@@ -126,13 +134,30 @@ class Renderer {
   }
 
   _drawPlacedBlocks(ctx, board) {
-    for (let r = 0; r < C.ROWS; r++) {
-      for (let c = 0; c < C.COLS; c++) {
-        if (board.grid[r][c]) {
-          this._drawCell(ctx, c, r, board.grid[r][c], 0.85);
+    const themeId = themes.active.id;
+    if (this._boardBlocksVersion !== board.version || this._boardBlocksTheme !== themeId) {
+      // 보드 변경 또는 테마 변경 시에만 오프스크린 캔버스 재렌더
+      if (!this._boardBlocksCache) {
+        this._boardBlocksCache = document.createElement("canvas");
+        this._boardBlocksCache.width = C.COLS * C.CELL;
+        this._boardBlocksCache.height = C.ROWS * C.CELL;
+      }
+      const oc = this._boardBlocksCache.getContext("2d");
+      oc.clearRect(0, 0, this._boardBlocksCache.width, this._boardBlocksCache.height);
+      oc.save();
+      oc.translate(-C.BOARD_X, -C.BOARD_Y);
+      for (let r = 0; r < C.ROWS; r++) {
+        for (let c = 0; c < C.COLS; c++) {
+          if (board.grid[r][c]) {
+            this._drawCell(oc, c, r, board.grid[r][c], 0.85);
+          }
         }
       }
+      oc.restore();
+      this._boardBlocksVersion = board.version;
+      this._boardBlocksTheme = themeId;
     }
+    ctx.drawImage(this._boardBlocksCache, C.BOARD_X, C.BOARD_Y);
   }
 
   _drawCell(ctx, col, row, color, alpha = 1.0) {
@@ -642,29 +667,34 @@ class Renderer {
     return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${c.a})`;
   }
 
-  // 색상 문자열 파싱 (#hex 또는 rgba)
+  // 색상 문자열 파싱 (#hex 또는 rgba) — 메모이제이션 적용
   _parseColor(color) {
+    const cached = _colorParseCache.get(color);
+    if (cached !== undefined) return cached;
+    let result = null;
     // #hex 형식
     if (color.startsWith('#')) {
       let hex = color.slice(1);
       if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-      return {
+      result = {
         r: parseInt(hex.substr(0, 2), 16),
         g: parseInt(hex.substr(2, 2), 16),
         b: parseInt(hex.substr(4, 2), 16),
         a: 1,
       };
+    } else {
+      // rgba() 형식
+      const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/);
+      if (m) {
+        result = {
+          r: parseInt(m[1]),
+          g: parseInt(m[2]),
+          b: parseInt(m[3]),
+          a: m[4] !== undefined ? parseFloat(m[4]) : 1,
+        };
+      }
     }
-    // rgba() 형식
-    const m = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/);
-    if (m) {
-      return {
-        r: parseInt(m[1]),
-        g: parseInt(m[2]),
-        b: parseInt(m[3]),
-        a: m[4] !== undefined ? parseFloat(m[4]) : 1,
-      };
-    }
-    return null;
+    _colorParseCache.set(color, result);
+    return result;
   }
 }

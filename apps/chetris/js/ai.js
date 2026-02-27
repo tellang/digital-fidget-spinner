@@ -37,11 +37,13 @@ class AI {
         sim.place(finalCells, C.COLORS[piece.type]);
         const cleared = sim.clearLines();
 
-        const agg = this._aggregateHeight(sim);
-        const maxH = this._maxHeight(sim);
+        // 컬럼 높이 1회 계산, 평가 함수 공유 (C1 최적화)
+        const heights = this._getColumnHeights(sim);
+        const agg = this._sumHeights(heights);
+        const maxH = this._maxFromHeights(heights);
         const lines = cleared.count;
-        const holes = sim.getHoles();
-        const bump = this._smartBumpiness(sim);
+        const holes = this._countHoles(sim, heights);
+        const bump = this._calcBumpiness(heights);
 
         let score = agg * this.w.height
                   + lines * this.w.lines
@@ -101,42 +103,51 @@ class AI {
     return { minC, maxC };
   }
 
-  _aggregateHeight(board) {
-    let total = 0;
+  // 컬럼 높이 배열 1회 계산 (평가 함수 공유)
+  _getColumnHeights(board) {
+    const heights = new Array(C.COLS);
     for (let c = 0; c < C.COLS; c++) {
+      heights[c] = 0;
       for (let r = 0; r < C.ROWS; r++) {
-        if (board.grid[r][c]) { total += C.ROWS - r; break; }
+        if (board.grid[r][c]) { heights[c] = C.ROWS - r; break; }
       }
     }
+    return heights;
+  }
+
+  _sumHeights(heights) {
+    let total = 0;
+    for (let i = 0; i < heights.length; i++) total += heights[i];
     return total;
   }
 
-  _maxHeight(board) {
+  _maxFromHeights(heights) {
     let max = 0;
-    for (let c = 0; c < C.COLS; c++) {
-      for (let r = 0; r < C.ROWS; r++) {
-        if (board.grid[r][c]) { max = Math.max(max, C.ROWS - r); break; }
-      }
+    for (let i = 0; i < heights.length; i++) {
+      if (heights[i] > max) max = heights[i];
     }
     return max;
   }
 
-  // 양쪽 빈 영역에 대한 엣지 바이어스를 줄인 범프니스
-  _smartBumpiness(board) {
-    const heights = [];
+  // 높이 배열 활용: 각 컬럼에서 최상단 블록 아래 빈 셀만 체크
+  _countHoles(board, heights) {
+    let holes = 0;
     for (let c = 0; c < C.COLS; c++) {
-      let h = 0;
-      for (let r = 0; r < C.ROWS; r++) {
-        if (board.grid[r][c]) { h = C.ROWS - r; break; }
+      if (heights[c] === 0) continue;
+      const startRow = C.ROWS - heights[c];
+      for (let r = startRow + 1; r < C.ROWS; r++) {
+        if (!board.grid[r][c]) holes++;
       }
-      heights.push(h);
     }
+    return holes;
+  }
+
+  // 범프니스: 인접 컬럼 높이 차이 합 (양쪽 빈 영역 제외)
+  _calcBumpiness(heights) {
     let bump = 0;
     for (let i = 0; i < heights.length - 1; i++) {
-      const diff = Math.abs(heights[i] - heights[i + 1]);
-      // 둘 다 0인 인접 열은 범프니스에 포함하지 않음
       if (heights[i] === 0 && heights[i + 1] === 0) continue;
-      bump += diff;
+      bump += Math.abs(heights[i] - heights[i + 1]);
     }
     return bump;
   }
