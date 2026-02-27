@@ -45,10 +45,9 @@ class Board {
   }
 
   clone() {
-    const b = new Board();
-    for (let r = 0; r < C.ROWS; r++) {
-      b.grid[r] = [...this.grid[r]];
-    }
+    const b = Object.create(Board.prototype);
+    b.grid = this.grid.map((row) => row.slice());
+    b.version = this.version;
     return b;
   }
 

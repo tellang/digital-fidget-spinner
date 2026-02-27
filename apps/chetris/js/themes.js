@@ -4,6 +4,8 @@ class ThemeRegistry {
   #themes = new Map();
   #active = null;
   #listeners = new Set();
+  #swapTimer = null;
+  #classTimer = null;
 
   register(id, theme) {
     if (!id || !theme?.colors || !theme?.name) {
@@ -26,14 +28,17 @@ class ThemeRegistry {
     const container = document.getElementById("game-container");
     // 크로스페이드: 기존 테마 → 새 테마 (0.6s)
     if (container && this.#active && this.#active.id !== id) {
+      // 이전 전환 타이머 취소 (빠른 연속 전환 레이스 방지)
+      clearTimeout(this.#swapTimer);
+      clearTimeout(this.#classTimer);
       container.classList.add("theme-switching");
       // 중간 지점(0.3s)에서 실제 테마 교체 — 화면이 어두울 때 바뀜
-      setTimeout(() => {
+      this.#swapTimer = setTimeout(() => {
         this.#active = theme;
         this.#applyCSS(theme);
         this.#notify(theme);
       }, 300);
-      setTimeout(() => container.classList.remove("theme-switching"), 600);
+      this.#classTimer = setTimeout(() => container.classList.remove("theme-switching"), 600);
     } else {
       this.#active = theme;
       this.#applyCSS(theme);

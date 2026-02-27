@@ -161,6 +161,8 @@ class ScreenShake {
   constructor() {
     this.intensity = 0;
     this.decay = 10;
+    // 재사용 오프셋 객체 (프레임당 GC 방지)
+    this._offset = { x: 0, y: 0 };
   }
 
   trigger(intensity = 5) {
@@ -173,11 +175,14 @@ class ScreenShake {
   }
 
   getOffset() {
-    if (this.intensity === 0) return { x: 0, y: 0 };
-    return {
-      x: (Math.random() - 0.5) * this.intensity * 2,
-      y: (Math.random() - 0.5) * this.intensity * 2,
-    };
+    if (this.intensity === 0) {
+      this._offset.x = 0;
+      this._offset.y = 0;
+    } else {
+      this._offset.x = (Math.random() - 0.5) * this.intensity * 2;
+      this._offset.y = (Math.random() - 0.5) * this.intensity * 2;
+    }
+    return this._offset;
   }
 }
 

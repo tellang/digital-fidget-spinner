@@ -39,9 +39,10 @@ class Game {
     this._prevOpacity = 1.0;
     this._prevBoosted = false;
 
-    // 렌더 캐시: 고스트 Y, 현재 피스 셀
+    // 렌더 캐시: 고스트 Y, 현재 피스 셀, 고스트 셀
     this._cachedGhostY = null;
     this._cachedCells = null;
+    this._cachedGhostCells = null;
 
     // 설정 로드 (토스 스타일: 첫 실행은 시간대 기반 자동 테마)
     settings.load().then(() => {
@@ -231,6 +232,7 @@ class Game {
       this.current.y += dy;
       this._cachedGhostY = null;
       this._cachedCells = null;
+      this._cachedGhostCells = null;
       return true;
     }
     return false;
@@ -258,6 +260,7 @@ class Game {
         this.current.lastAction = "rotate";
         this._cachedGhostY = null;
         this._cachedCells = null;
+        this._cachedGhostCells = null;
         return true;
       }
     }
@@ -342,6 +345,7 @@ class Game {
     this.next = this._spawnPiece();
     this._cachedGhostY = null;
     this._cachedCells = null;
+    this._cachedGhostCells = null;
 
     if (!this.current) return;
 
@@ -413,6 +417,7 @@ class Game {
     this.moveQueue = [];
     this._cachedGhostY = null;
     this._cachedCells = null;
+    this._cachedGhostCells = null;
     this.bag = [];
     this._fillBag();
     this.next = this._spawnPiece();
@@ -438,10 +443,13 @@ class Game {
       currentCells = this._cachedCells || (this._cachedCells = getCells(this.current));
       currentColor = C.COLORS[this.current.type];
       const ghostY = this._cachedGhostY !== null ? this._cachedGhostY : (this._cachedGhostY = getGhostY(this.board, this.current));
-      ghostCells = C.SHAPES[this.current.type][this.current.rotation].map(([r, c]) => [
-        r + ghostY,
-        c + this.current.x,
-      ]);
+      if (!this._cachedGhostCells) {
+        this._cachedGhostCells = C.SHAPES[this.current.type][this.current.rotation].map(([r, c]) => [
+          r + ghostY,
+          c + this.current.x,
+        ]);
+      }
+      ghostCells = this._cachedGhostCells;
     }
 
     this.renderer.draw({
