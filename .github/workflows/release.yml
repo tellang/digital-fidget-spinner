@@ -27,6 +27,7 @@ jobs:
       - run: npm install
 
       - uses: tauri-apps/tauri-action@v0
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -35,6 +36,26 @@ jobs:
           projectPath: apps/chetris
           tagName: ${{ github.ref_name }}
           releaseName: "CHATRIS ${{ github.ref_name }}"
-          releaseBody: "CHATRIS ${{ github.ref_name }} — Assets에서 다운로드하세요."
+          releaseBody: |
+            ## CHATRIS ${{ github.ref_name }}
+
+            ### 다운로드
+
+            | 파일 | 설명 |
+            |------|------|
+            | **`CHATRIS-portable.exe`** | **포터블 (추천)** — 설치 없이 바로 실행 |
+            | `CHATRIS_*_x64-setup.exe` | NSIS 설치 프로그램 (WebView2 포함) |
+            | `CHATRIS_*_x64_en-US.msi` | MSI 설치 프로그램 |
+
+            > 포터블 실행 시 Windows 10 21H2+ / Windows 11에 기본 포함된 WebView2가 필요합니다.
+            > 트레이 아이콘 우클릭 → 자동 시작 설정 가능.
           releaseDraft: false
           prerelease: false
+
+      - name: Upload portable exe
+        shell: bash
+        run: |
+          cp src-tauri/target/release/chatris.exe "CHATRIS-portable.exe"
+          gh release upload "${{ github.ref_name }}" "CHATRIS-portable.exe" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

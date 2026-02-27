@@ -1,7 +1,7 @@
 {
   "productName": "CHATRIS",
   "identifier": "com.chatris.widget",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -35,7 +35,15 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "compression": "lzma"
+      }
+    }
   },
   "plugins": {
     "updater": {
