@@ -1,0 +1,16 @@
+{
+  "name": "chatris",
+  "version": "3.1.0",
+  "description": "채팅 반응형 자동 테트리스 위젯 - 네온/사이버펑크 스타일",
+  "scripts": {
+    "dev": "npx serve . -l 1420 --no-clipboard",
+    "start": "npx serve . -l 1420 --no-clipboard",
+    "tauri": "tauri",
+    "tauri:dev": "npx tauri dev",
+    "tauri:build": "npx tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "serve": "^14.2.4"
+  }
+}

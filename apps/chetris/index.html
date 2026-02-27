@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHATRIS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 2px solid var(--theme-border, #00fff2);
+      border-radius: 8px;
+      -webkit-app-region: drag;
+      cursor: move;
+      box-shadow: var(--theme-glow, 0 0 20px rgba(0,255,242,0.3));
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    #game-container.boosted {
+      box-shadow: var(--theme-boost-glow, 0 0 30px rgba(255,0,64,0.4));
+      border-color: var(--theme-boost-border, #ff0040);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 6px;
+      width: 100%;
+      height: 100%;
+    }
+
+    #scanline {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+      border-radius: 6px;
+    }
+
+    /* CRT 비네트 효과 */
+    #vignette {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      border-radius: 6px;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 60%,
+        rgba(0, 0, 0, 0.4) 100%
+      );
+    }
+
+    /* 타이핑 안내 */
+    #hint {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      color: rgba(0, 255, 242, 0.4);
+      font-size: 7px;
+      font-family: 'Courier New', monospace;
+      pointer-events: none;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    /* 컨텍스트 메뉴 */
+    #ctx-menu {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      background: rgba(10, 10, 26, 0.96);
+      border: 1px solid var(--theme-border, #00fff2);
+      border-radius: 5px;
+      padding: 3px 0;
+      min-width: 120px;
+      font-family: 'Courier New', monospace;
+      font-size: 7px;
+      color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 12px rgba(0, 255, 242, 0.15);
+      animation: ctx-in 0.12s ease;
+      -webkit-app-region: no-drag;
+      cursor: default;
+      overflow-y: auto;
+      max-height: calc(100vh - 8px);
+    }
+    @keyframes ctx-in {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .ctx-label {
+      padding: 2px 7px 1px;
+      font-size: 5px;
+      color: rgba(255, 255, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .ctx-item {
+      padding: 2px 7px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.1s;
+      white-space: nowrap;
+    }
+    .ctx-item:hover { background: rgba(0, 255, 242, 0.08); }
+    .ctx-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      flex-shrink: 0;
+    }
+    .ctx-item.active .ctx-dot {
+      background: currentColor;
+      box-shadow: 0 0 3px currentColor;
+    }
+    .ctx-check {
+      width: 6px; height: 6px;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    .ctx-item.checked .ctx-check {
+      background: var(--theme-border, #00fff2);
+      border-color: var(--theme-border, #00fff2);
+      box-shadow: 0 0 3px var(--theme-border, #00fff2);
+    }
+    .ctx-sep {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 2px 5px;
+    }
+    .ctx-pos-row {
+      display: flex;
+      gap: 2px;
+      padding: 1px 7px;
+    }
+    .ctx-pos {
+      flex: 1;
+      text-align: center;
+      padding: 2px;
+      cursor: pointer;
+      border-radius: 2px;
+      font-size: 8px;
+    }
+    .ctx-pos:hover { background: rgba(0, 255, 242, 0.12); }
+    .ctx-quit { color: #ff0040; }
+    .ctx-quit:hover { background: rgba(255, 0, 64, 0.1); }
+    .ctx-ver {
+      padding: 2px 7px;
+      font-size: 5px;
+      color: rgba(255, 255, 255, 0.2);
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    /* 업데이트 모달 */
+    #update-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.75);
+      -webkit-app-region: no-drag;
+      cursor: default;
+    }
+    .update-card {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(8, 8, 24, 0.98);
+      border: 1px solid var(--theme-border, #00fff2);
+      border-radius: 6px;
+      padding: 12px 14px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      box-shadow: 0 0 25px rgba(0, 255, 242, 0.2), inset 0 0 15px rgba(0, 255, 242, 0.02);
+      animation: upd-in 0.2s ease;
+      width: 130px;
+    }
+    @keyframes upd-in {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+    .upd-icon {
+      font-size: 14px;
+      margin-bottom: 4px;
+      filter: drop-shadow(0 0 6px var(--theme-border, #00fff2));
+    }
+    .upd-title {
+      font-size: 6px;
+      color: var(--theme-border, #00fff2);
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+      text-shadow: 0 0 8px var(--theme-border, #00fff2);
+    }
+    .upd-ver {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 10px;
+    }
+    .upd-ver b {
+      color: var(--theme-border, #00fff2);
+      text-shadow: 0 0 4px var(--theme-border, #00fff2);
+    }
+    .upd-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .upd-btn {
+      flex: 1;
+      padding: 4px 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.5);
+      font-family: 'Courier New', monospace;
+      font-size: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+    }
+    .upd-btn:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      color: white;
+    }
+    .upd-btn-go {
+      border-color: var(--theme-border, #00fff2);
+      color: var(--theme-border, #00fff2);
+      text-shadow: 0 0 4px var(--theme-border, #00fff2);
+    }
+    .upd-btn-go:hover {
+      background: rgba(0, 255, 242, 0.1);
+      box-shadow: 0 0 10px rgba(0, 255, 242, 0.3);
+    }
+    .upd-progress {
+      display: none;
+      margin-top: 8px;
+    }
+    .upd-bar-bg {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .upd-bar {
+      height: 100%;
+      background: var(--theme-border, #00fff2);
+      box-shadow: 0 0 6px var(--theme-border, #00fff2);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .upd-status {
+      font-size: 5px;
+      color: rgba(255, 255, 255, 0.35);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container" data-tauri-drag-region>
+    <canvas id="canvas"></canvas>
+    <div id="scanline"></div>
+    <div id="vignette"></div>
+    <div id="hint">⌨ TYPE TO ACCELERATE</div>
+  </div>
+
+  <div id="update-overlay">
+    <div class="update-card">
+      <div class="upd-icon">&#9889;</div>
+      <div class="upd-title">UPDATE AVAILABLE</div>
+      <div class="upd-ver" id="upd-ver"></div>
+      <div class="upd-btns" id="upd-btns">
+        <button class="upd-btn" id="upd-later">LATER</button>
+        <button class="upd-btn upd-btn-go" id="upd-go">UPDATE</button>
+      </div>
+      <div class="upd-progress" id="upd-progress">
+        <div class="upd-bar-bg"><div class="upd-bar" id="upd-bar"></div></div>
+        <div class="upd-status" id="upd-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ctx-menu">
+    <div class="ctx-label">THEME</div>
+    <div class="ctx-item" data-theme="cyberpunk"><span class="ctx-dot"></span>Cyberpunk</div>
+    <div class="ctx-item" data-theme="gameboy"><span class="ctx-dot"></span>Game Boy</div>
+    <div class="ctx-item" data-theme="pastel"><span class="ctx-dot"></span>Pastel</div>
+    <div class="ctx-item" data-theme="matrix"><span class="ctx-dot"></span>Matrix</div>
+    <div class="ctx-item" data-theme="glass"><span class="ctx-dot"></span>Glass</div>
+    <div class="ctx-item" data-theme="retro"><span class="ctx-dot"></span>Retro</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-label">SETTINGS</div>
+    <div class="ctx-item ctx-toggle" data-key="particles"><span class="ctx-check"></span>파티클</div>
+    <div class="ctx-item ctx-toggle" data-key="shake"><span class="ctx-check"></span>진동</div>
+    <div class="ctx-item ctx-toggle" data-key="autoFade"><span class="ctx-check"></span>자동 페이드</div>
+    <div class="ctx-item ctx-toggle" data-key="autoStart"><span class="ctx-check"></span>시작프로그램</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-label">POSITION</div>
+    <div class="ctx-pos-row">
+      <div class="ctx-pos" data-pos="tl">↖</div>
+      <div class="ctx-pos" data-pos="tr">↗</div>
+    </div>
+    <div class="ctx-pos-row">
+      <div class="ctx-pos" data-pos="bl">↙</div>
+      <div class="ctx-pos" data-pos="br">↘</div>
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item ctx-quit">종료</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-ver" id="ctx-ver">CHATRIS</div>
+  </div>
+
+  <script src="js/themes.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    // Tauri 키보드 포커스 확보
+    window.addEventListener('DOMContentLoaded', function() {
+      window.focus();
+      document.body.setAttribute('tabindex', '-1');
+      document.body.focus();
+    });
+    // 클릭 시에도 포커스 확보
+    document.addEventListener('click', function() {
+      document.body.focus();
+    });
+    // Tauri ESC 종료 핸들러
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && window.__TAURI__) {
+        // 메뉴가 열려있으면 메뉴만 닫기
+        var menu = document.getElementById('ctx-menu');
+        if (menu.style.display !== 'none' && menu.style.display !== '') {
+          menu.style.display = 'none';
+          return;
+        }
+        window.__TAURI__.core.invoke('exit_app');
+      }
+    });
+
+    // 컨텍스트 메뉴
+    (function() {
+      var menu = document.getElementById('ctx-menu');
+
+      function updateState() {
+        menu.querySelectorAll('[data-theme]').forEach(function(el) {
+          var active = themes.active && themes.active.id === el.dataset.theme;
+          el.classList.toggle('active', active);
+          var t = themes.get(el.dataset.theme);
+          if (t) el.style.color = active ? t.borderColor : '';
+        });
+        menu.querySelectorAll('.ctx-toggle').forEach(function(el) {
+          el.classList.toggle('checked', !!settings.get(el.dataset.key));
+        });
+      }
+
+      // 우클릭 → 메뉴 표시
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        updateState();
+        menu.style.display = 'block';
+        var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 2);
+        var y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 2);
+        menu.style.left = Math.max(2, x) + 'px';
+        menu.style.top = Math.max(2, y) + 'px';
+      });
+
+      // 좌클릭 외부 → 메뉴 닫기
+      document.addEventListener('mousedown', function(e) {
+        if (e.button === 0 && !menu.contains(e.target)) {
+          menu.style.display = 'none';
+        }
+      });
+
+      // 테마 선택
+      menu.querySelectorAll('[data-theme]').forEach(function(el) {
+        el.addEventListener('click', function() {
+          themes.apply(el.dataset.theme);
+          settings.set('theme', el.dataset.theme);
+          updateState();
+        });
+      });
+
+      // 설정 토글
+      menu.querySelectorAll('.ctx-toggle').forEach(function(el) {
+        el.addEventListener('click', function() {
+          var key = el.dataset.key;
+          var val = !settings.get(key);
+          settings.set(key, val);
+          if (key === 'autoStart' && window.__TAURI__) {
+            window.__TAURI__.core.invoke('set_auto_start', { enable: val });
+          }
+          updateState();
+        });
+      });
+
+      // 위치 이동
+      menu.querySelectorAll('.ctx-pos').forEach(function(el) {
+        el.addEventListener('click', function() {
+          if (window.__TAURI__) {
+            window.__TAURI__.core.invoke('position_window_cmd', { position: el.dataset.pos });
+          }
+          menu.style.display = 'none';
+        });
+      });
+
+      // 종료
+      menu.querySelector('.ctx-quit').addEventListener('click', function() {
+        if (window.__TAURI__) {
+          window.__TAURI__.core.invoke('exit_app');
+        }
+      });
+
+      // 버전 표시 (Tauri API에서 동적 로드)
+      var verEl = document.getElementById('ctx-ver');
+      if (window.__TAURI__) {
+        window.__TAURI__.app.getVersion().then(function(v) {
+          verEl.textContent = 'CHATRIS v' + v;
+        });
+      } else {
+        verEl.textContent = 'CHATRIS (dev)';
+      }
+    })();
+
+    // 업데이트 모달
+    (function() {
+      if (!window.__TAURI__) return;
+      var overlay = document.getElementById('update-overlay');
+      var verInfo = document.getElementById('upd-ver');
+      var btns = document.getElementById('upd-btns');
+      var progress = document.getElementById('upd-progress');
+      var bar = document.getElementById('upd-bar');
+      var status = document.getElementById('upd-status');
+
+      window.__TAURI__.event.listen('update-available', function(e) {
+        var newVer = e.payload.version;
+        window.__TAURI__.app.getVersion().then(function(cur) {
+          verInfo.innerHTML = 'v' + cur + ' &rarr; <b>v' + newVer + '</b>';
+          btns.style.display = 'flex';
+          progress.style.display = 'none';
+          bar.style.width = '0%';
+          overlay.style.display = 'block';
+        });
+      });
+
+      document.getElementById('upd-later').addEventListener('click', function() {
+        overlay.style.display = 'none';
+      });
+
+      document.getElementById('upd-go').addEventListener('click', function() {
+        btns.style.display = 'none';
+        progress.style.display = 'block';
+        status.textContent = 'downloading...';
+        window.__TAURI__.core.invoke('install_update').then(function() {
+          bar.style.width = '100%';
+          status.textContent = 'restart to apply';
+          setTimeout(function() { overlay.style.display = 'none'; }, 3000);
+        }).catch(function(err) {
+          status.textContent = 'error: ' + err;
+          btns.style.display = 'flex';
+          progress.style.display = 'none';
+        });
+      });
+
+      window.__TAURI__.event.listen('update-progress', function(e) {
+        var d = e.payload.downloaded;
+        var t = e.payload.total;
+        if (t) {
+          var pct = Math.round(d / t * 100);
+          bar.style.width = pct + '%';
+          status.textContent = pct + '%';
+        }
+      });
+
+      window.__TAURI__.event.listen('update-installed', function() {
+        bar.style.width = '100%';
+        status.textContent = 'restart to apply';
+      });
+    })();
+  </script>
+</body>
+</html>

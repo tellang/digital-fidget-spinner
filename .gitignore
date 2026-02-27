@@ -1,0 +1,36 @@
+# 빌드 산출물
+dist/
+**/target/
+
+# 의존성
+node_modules/
+
+# AI 설정
+.claude/
+.omc/
+.codex/
+.gemini/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Tauri 생성 파일
+**/gen/
+
+# 개발 프롬프트 / AI 생성 문서
+NEXT_SESSION_PROMPT.md
+CLAUDE.md
+MEMORY.md
+PROJECT_INDEX.md
+WORKFLOW.md
+
+# 환경 변수
+.env
+.env.*
+!.env.example
+
+# 배포 아카이브
+*.zip
+*.exe
+!src-tauri/icons/*.exe

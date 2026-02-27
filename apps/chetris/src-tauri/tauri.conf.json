@@ -1,0 +1,48 @@
+{
+  "productName": "CHATRIS",
+  "identifier": "com.chatris.widget",
+  "version": "3.1.0",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npx serve . -l 1420 --no-clipboard",
+    "beforeBuildCommand": "node scripts/copy-dist.js"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "CHATRIS",
+        "width": 174,
+        "height": 288,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/tellang/chetris/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFQjVDMTM1M0UwQzE2NzAKUldSd0ZndytOY0cxWGd6RjcvMGdwd2prWlM1Qms2Y0NPSnFLWGEwc0lPUFBBUkpqaW8rYXQxb04K"
+    }
+  }
+}

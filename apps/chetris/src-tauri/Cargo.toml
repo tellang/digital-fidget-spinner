@@ -1,0 +1,27 @@
+[package]
+name = "chatris"
+version = "3.1.0"
+description = "채팅 반응형 자동 테트리스 데스크탑 오버레이 위젯"
+edition = "2021"
+
+[lib]
+name = "chatris_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rdev = "0.5"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
