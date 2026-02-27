@@ -46,7 +46,7 @@ class Game {
     // 게임 오버
     this.gameOver = false;
     this.restartTimer = 0;
-    this.restartDelay = 2500;
+    this.restartDelay = 3500;
 
     // 자동 페이드
     this.idleTime = 0;
@@ -111,10 +111,12 @@ class Game {
     const dt = Math.min((now - this.lastTime) / 1000, 0.1);
     this.lastTime = now;
 
-    this._update(dt);
-    this._render();
-
-    this._scheduleNext();
+    try {
+      this._update(dt);
+      this._render();
+    } finally {
+      this._scheduleNext();
+    }
   }
 
   _update(dt) {
@@ -141,6 +143,11 @@ class Game {
     // 게임 오버 처리
     if (this.gameOver) {
       this.restartTimer += dt * 1000;
+      // 키 입력 시 즉시 재시작 (최소 500ms 대기 후 — 오입력 방지)
+      if (this.restartTimer >= 500 && (drops > 0 || chars.length > 0)) {
+        this._restart();
+        return;
+      }
       if (this.restartTimer >= this.restartDelay) {
         this._restart();
       }

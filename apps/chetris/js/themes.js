@@ -126,7 +126,7 @@ themes.register("gameboy", {
   name: "Game Boy",
   colors: { I: "#0f380f", O: "#306230", T: "#0f380f", S: "#306230", Z: "#0f380f", J: "#306230", L: "#0f380f" },
   // 뿌요 색상: 4톤 그린 스케일 (원본 게임보이 LCD)
-  puyoColors: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'],
+  puyoColors: ['#0f380f', '#306230', '#6b8c0f', '#c6de5a'],
   bg: "#9bbc0f",
   gridColor: "rgba(15,56,15,0.15)",
   borderColor: "#306230",
@@ -291,7 +291,7 @@ themes.register("cloud", {
 
 themes.register("eclipse", {
   name: "Solar Eclipse",
-  colors: { I: "#ff4d00", O: "#ffaa00", T: "#ff0000", S: "#444444", Z: "#666666", J: "#cc3300", L: "#ff6600" },
+  colors: { I: "#ff4d00", O: "#ffaa00", T: "#ff0000", S: "#cc2200", Z: "#992200", J: "#cc3300", L: "#ff6600" },
   puyoColors: ["#ff4d00", "#ffaa00", "#ff0000", "#cc3300", "#ff6600"],
   bg: "#000000",
   gridColor: "rgba(255,77,0,0.04)",
