@@ -1,7 +1,7 @@
 {
   "productName": "CHATRIS",
   "identifier": "com.chatris.widget",
-  "version": "4.1.2",
+  "version": "4.1.3",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -17,7 +17,8 @@
         "width": 174,
         "height": 288,
         "decorations": false,
-        "transparent": true,
+        "transparent": false,
+        "backgroundColor": "#0a0a1a",
         "alwaysOnTop": true,
         "resizable": true,
         "skipTaskbar": true
