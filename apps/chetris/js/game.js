@@ -38,6 +38,10 @@ class Game {
     this.currentOpacity = 1.0;
     this._prevOpacity = 1.0;
     this._prevBoosted = false;
+    document.body.addEventListener("mouseenter", () => {
+      this.idleTime = 0;
+      this.currentOpacity = 1.0;
+    });
 
     // 렌더 캐시: 고스트 Y, 현재 피스 셀, 고스트 셀
     this._cachedGhostY = null;
@@ -123,7 +127,7 @@ class Game {
     }
 
     // 자동 페이드 처리
-    if (drops > 0) {
+    if (drops > 0 || chars.length > 0) {
       this.idleTime = 0;
       this.currentOpacity = 1.0;
     } else {
@@ -230,6 +234,7 @@ class Game {
     if (this.board.isValid(cells)) {
       this.current.x += dx;
       this.current.y += dy;
+      this.current.lastAction = "move";
       this._cachedGhostY = null;
       this._cachedCells = null;
       this._cachedGhostCells = null;

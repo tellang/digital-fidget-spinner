@@ -280,9 +280,9 @@ class Renderer {
 
     // 사이드 패널 배경
     ctx.save();
-    ctx.fillStyle = "rgba(3, 3, 12, 0.6)";
+    ctx.fillStyle = themes.active.boardBg;
     ctx.fillRect(sx, sy, pw, C.ROWS * C.CELL);
-    ctx.strokeStyle = "rgba(0, 255, 242, 0.15)";
+    ctx.strokeStyle = themes.active.gridColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(sx, sy, pw, C.ROWS * C.CELL);
     ctx.restore();
@@ -292,7 +292,9 @@ class Renderer {
     // NEXT 피스
     ctx.save();
     ctx.font = '7px "Courier New", monospace';
-    ctx.fillStyle = "rgba(0, 255, 242, 0.6)";
+    const t = themes.active;
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = t.textColor;
     ctx.textAlign = "center";
     ctx.fillText("NEXT", sx + pw / 2, cy);
     cy += 5;
@@ -367,7 +369,8 @@ class Renderer {
     ctx.fillRect(barX, barY, barW, barH);
 
     // 채운 부분
-    const barColor = boost > 4 ? "#ff0040" : boost > 2 ? "#ffee00" : "#00fff2";
+    const sc = themes.active.statColors;
+    const barColor = boost > 4 ? sc.combo : boost > 2 ? sc.score : themes.active.boostBorderColor;
     ctx.fillStyle = barColor;
     ctx.shadowBlur = 8;
     ctx.shadowColor = barColor;
@@ -384,24 +387,24 @@ class Renderer {
     const cy = C.CANVAS_H / 2 - 20;
 
     ctx.font = 'bold 16px "Courier New", monospace';
-    ctx.fillStyle = "#ff0040";
+    ctx.fillStyle = themes.active.statColors.combo;
     ctx.shadowBlur = 14;
-    ctx.shadowColor = "#ff0040";
+    ctx.shadowColor = themes.active.statColors.combo;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("GAME OVER", cx, cy);
 
     ctx.font = '8px "Courier New", monospace';
-    ctx.fillStyle = "#00fff2";
-    ctx.shadowColor = "#00fff2";
+    ctx.fillStyle = themes.active.textColor;
+    ctx.shadowColor = themes.active.textColor;
     ctx.shadowBlur = 8;
     ctx.fillText(`SCORE: ${this._formatNum(state.score || 0)}`, cx, cy + 22);
 
     const restartAlpha = 0.5 + Math.sin(this.glowPhase * 3) * 0.5;
     ctx.globalAlpha = restartAlpha;
     ctx.font = '7px "Courier New", monospace';
-    ctx.fillStyle = "#ffee00";
-    ctx.shadowColor = "#ffee00";
+    ctx.fillStyle = themes.active.statColors.score;
+    ctx.shadowColor = themes.active.statColors.score;
     ctx.fillText("RESTARTING...", cx, cy + 40);
 
     ctx.restore();
@@ -535,9 +538,9 @@ class Renderer {
 
     // 사이드 패널 배경
     ctx.save();
-    ctx.fillStyle = 'rgba(3, 3, 12, 0.6)';
+    ctx.fillStyle = t.boardBg;
     ctx.fillRect(sx, sy, pw, C.ROWS * C.CELL);
-    ctx.strokeStyle = 'rgba(0, 255, 242, 0.15)';
+    ctx.strokeStyle = t.gridColor;
     ctx.lineWidth = 1;
     ctx.strokeRect(sx, sy, pw, C.ROWS * C.CELL);
     ctx.restore();
@@ -547,7 +550,8 @@ class Renderer {
     // NEXT 뿌요 쌍 미리보기
     ctx.save();
     ctx.font = '7px "Courier New", monospace';
-    ctx.fillStyle = 'rgba(0, 255, 242, 0.6)';
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = t.textColor;
     ctx.textAlign = 'center';
     ctx.fillText('NEXT', sx + pw / 2, cy);
     cy += 5;

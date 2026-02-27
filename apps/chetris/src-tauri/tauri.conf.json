@@ -1,7 +1,7 @@
 {
   "productName": "CHATRIS",
   "identifier": "com.chatris.widget",
-  "version": "3.2.0",
+  "version": "4.0.0",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://github.com https://api.github.com"
     }
   },
   "bundle": {
