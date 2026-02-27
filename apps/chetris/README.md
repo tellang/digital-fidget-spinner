@@ -4,7 +4,7 @@
 
 **타이핑하면 빨라지는 AI 테트리스**
 
-[![Version](https://img.shields.io/badge/version-3.0.0-00fff2?style=flat-square)](https://github.com/tellang/chetris/releases)
+[![Version](https://img.shields.io/badge/version-3.0.0-00fff2?style=flat-square)](https://github.com/tellang/digital-fidget-spinner/releases)
 [![License](https://img.shields.io/badge/license-MIT-b026ff?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-39ff14?style=flat-square)](#)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-ff6600?style=flat-square)](https://v2.tauri.app)
@@ -23,7 +23,7 @@ AI가 플레이하고, 당신의 타이핑이 부스트합니다.<br>
 
 <br>
 
-[**다운로드**](https://github.com/tellang/chetris/releases) · [빌드 가이드](#빌드) · [테마 갤러리](#테마)
+[**다운로드**](https://github.com/tellang/digital-fidget-spinner/releases) · [빌드 가이드](#빌드) · [테마 갤러리](#테마)
 
 </div>
 
@@ -95,7 +95,7 @@ Cyberpunk / Game Boy / Pastel / Matrix / Glass / Retro<br>
 
 ### 다운로드
 
-[**Releases**](https://github.com/tellang/chetris/releases) 에서 받으세요:
+[**Releases**](https://github.com/tellang/digital-fidget-spinner/releases) 에서 받으세요:
 
 | 파일 | 용도 |
 |------|------|

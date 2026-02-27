@@ -40,7 +40,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/tellang/chetris/releases/latest/download/latest.json"
+        "https://github.com/tellang/digital-fidget-spinner/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFQjVDMTM1M0UwQzE2NzAKUldSd0ZndytOY0cxWGd6RjcvMGdwd2prWlM1Qms2Y0NPSnFLWGEwc0lPUFBBUkpqaW8rYXQxb04K"
     }
