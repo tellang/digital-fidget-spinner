@@ -9,7 +9,8 @@ class Settings {
     autoFade: true,
     autoFadeDelay: 5,
     autoFadeOpacity: 0.15,
-    autoStart: false,
+    autoStart: true,
+    autoTheme: false,
   };
   #listeners = new Set();
   #loaded = false;
@@ -62,6 +63,15 @@ class Settings {
     } else {
       try { await window.__TAURI__.core.invoke("save_settings", { json }); } catch {}
     }
+  }
+
+  // 시간대 기반 테마 추천 (선제적 스무스)
+  getTimeBasedTheme() {
+    const h = new Date().getHours();
+    if (h >= 6 && h < 10) return "cloud";       // 아침: 밝고 차분
+    if (h >= 10 && h < 17) return "glass";       // 낮: 깔끔한 글래스
+    if (h >= 17 && h < 20) return "vaporwave";   // 저녁: 감성 레트로
+    return "abyss";                               // 밤: 어두운 심해
   }
 }
 

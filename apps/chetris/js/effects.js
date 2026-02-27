@@ -32,6 +32,8 @@ class Particle {
 }
 
 class ParticleSystem {
+  static MAX_PARTICLES = 300;
+
   constructor() {
     this.particles = [];
   }
@@ -39,6 +41,7 @@ class ParticleSystem {
   // 폭발 이펙트 (라인 클리어, 충돌)
   burst(x, y, color, count = 20) {
     for (let i = 0; i < count; i++) {
+      if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
       this.particles.push(new Particle(x, y, color));
     }
   }
@@ -47,9 +50,11 @@ class ParticleSystem {
   lineClear(row, colors) {
     const y = C.BOARD_Y + row * C.CELL + C.CELL / 2;
     for (let c = 0; c < C.COLS; c++) {
+      if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
       const x = C.BOARD_X + c * C.CELL + C.CELL / 2;
       const color = colors[c] || C.NEON_POOL[Math.floor(Math.random() * C.NEON_POOL.length)];
       for (let i = 0; i < 5; i++) {
+        if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
         this.particles.push(new Particle(x, y, color, {
           angle: -Math.PI / 2 + (Math.random() - 0.5) * Math.PI,
           speed: 80 + Math.random() * 180,
@@ -62,6 +67,7 @@ class ParticleSystem {
   // 키 입력 이펙트: 작은 스파크
   spark(x, y, color) {
     for (let i = 0; i < 3; i++) {
+      if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
       this.particles.push(new Particle(x, y, color, {
         speed: 30 + Math.random() * 60,
         life: 0.2 + Math.random() * 0.3,
@@ -75,10 +81,11 @@ class ParticleSystem {
   puyoPop(row, col, color) {
     const x = C.BOARD_X + col * C.CELL + C.CELL / 2;
     const y = C.BOARD_Y + row * C.CELL + C.CELL / 2;
-    const count = 8 + Math.floor(Math.random() * 5); // 8~12개
+    const count = 8 + Math.floor(Math.random() * 5);
 
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2; // 균등 분포
+      if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
+      const angle = (i / count) * Math.PI * 2;
       this.particles.push(new Particle(x, y, color, {
         angle: angle,
         speed: 50 + Math.random() * 100,
@@ -95,6 +102,7 @@ class ParticleSystem {
     const count = chainCount * 8;
 
     for (let i = 0; i < count; i++) {
+      if (this.particles.length >= ParticleSystem.MAX_PARTICLES) break;
       const color = pool[Math.floor(Math.random() * pool.length)];
       this.particles.push(new Particle(x, y, color, {
         angle: Math.random() * Math.PI * 2,
@@ -117,24 +125,34 @@ class ParticleSystem {
   }
 
   update(dt) {
-    for (let i = this.particles.length - 1; i >= 0; i--) {
+    // swap-and-pop: splice 대신 마지막 요소와 교환 후 pop (GC 압력 감소)
+    let i = 0;
+    while (i < this.particles.length) {
       this.particles[i].update(dt);
       if (!this.particles[i].alive) {
-        this.particles.splice(i, 1);
+        this.particles[i] = this.particles[this.particles.length - 1];
+        this.particles.pop();
+      } else {
+        i++;
       }
     }
   }
 
   draw(ctx) {
-    for (const p of this.particles) {
-      ctx.save();
+    const len = this.particles.length;
+    if (len === 0) return;
+
+    // 배치 드로우: save/restore를 개별 호출 대신 한 번만
+    ctx.save();
+    ctx.shadowBlur = 10;
+    for (let i = 0; i < len; i++) {
+      const p = this.particles[i];
       ctx.globalAlpha = p.alpha;
       ctx.fillStyle = p.color;
-      ctx.shadowBlur = 10;
       ctx.shadowColor = p.color;
-      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-      ctx.restore();
+      ctx.fillRect(p.x - p.size / 2 | 0, p.y - p.size / 2 | 0, p.size, p.size);
     }
+    ctx.restore();
   }
 }
 

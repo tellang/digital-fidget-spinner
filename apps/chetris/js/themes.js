@@ -22,9 +22,23 @@ class ThemeRegistry {
   apply(id) {
     const theme = this.#themes.get(id);
     if (!theme) return false;
-    this.#active = theme;
-    this.#applyCSS(theme);
-    this.#notify(theme);
+
+    const container = document.getElementById("game-container");
+    // 크로스페이드: 기존 테마 → 새 테마 (0.6s)
+    if (container && this.#active && this.#active.id !== id) {
+      container.classList.add("theme-switching");
+      // 중간 지점(0.3s)에서 실제 테마 교체 — 화면이 어두울 때 바뀜
+      setTimeout(() => {
+        this.#active = theme;
+        this.#applyCSS(theme);
+        this.#notify(theme);
+      }, 300);
+      setTimeout(() => container.classList.remove("theme-switching"), 600);
+    } else {
+      this.#active = theme;
+      this.#applyCSS(theme);
+      this.#notify(theme);
+    }
     return true;
   }
 
@@ -54,8 +68,9 @@ class ThemeRegistry {
 
     const scanline = document.getElementById("scanline");
     const vignette = document.getElementById("vignette");
-    if (scanline) scanline.style.display = t.effects.scanline ? "" : "none";
-    if (vignette) vignette.style.display = t.effects.vignette ? "" : "none";
+    // 스무스 전환: display 대신 opacity (CSS transition 연동)
+    if (scanline) scanline.style.opacity = t.effects.scanline ? "1" : "0";
+    if (vignette) vignette.style.opacity = t.effects.vignette ? "1" : "0";
   }
 
   // 기본값 — 테마에 빠진 필드를 채움
@@ -205,6 +220,88 @@ themes.register("retro", {
   block: { glow: false, glowBlur: 0, highlight: true, shadow: true, roundness: 0 },
   effects: { scanline: false, vignette: false, particles: true, shake: true, crt: false },
   css: { borderGlow: "0 0 10px rgba(255,213,0,0.3)", boostGlow: "0 0 15px rgba(255,50,19,0.4)" },
+});
+
+// === 2026 트렌드 테마 ===
+
+themes.register("vaporwave", {
+  name: "Vaporwave Sunset",
+  colors: { I: "#ff71ce", O: "#01cdfe", T: "#05ffa1", S: "#b967ff", Z: "#fffb96", J: "#7b2fff", L: "#ff6b6b" },
+  puyoColors: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
+  bg: "#2d004b",
+  gridColor: "rgba(255,113,206,0.06)",
+  borderColor: "#ff71ce",
+  boostBorderColor: "#01cdfe",
+  neonPool: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
+  boardBg: "rgba(20,0,40,0.92)",
+  textColor: "#ff71ce",
+  statColors: { score: "#ff71ce", lines: "#05ffa1", combo: "#b967ff", level: "#01cdfe" },
+  block: { glow: true, glowBlur: 10, highlight: true, shadow: false, roundness: 0 },
+  effects: { scanline: true, vignette: true, particles: true, shake: true, crt: true },
+  css: {
+    borderGlow: "0 0 20px rgba(255,113,206,0.3), 0 0 60px rgba(185,103,255,0.15)",
+    boostGlow: "0 0 30px rgba(1,205,254,0.4), 0 0 80px rgba(255,113,206,0.2)",
+  },
+});
+
+themes.register("abyss", {
+  name: "Connected Abyss",
+  colors: { I: "#00f5ff", O: "#ffd700", T: "#9d4edd", S: "#00ff87", Z: "#ff0054", J: "#4361ee", L: "#f72585" },
+  puyoColors: ["#00f5ff", "#4361ee", "#9d4edd", "#f72585", "#00ff87"],
+  bg: "#000814",
+  gridColor: "rgba(0,245,255,0.03)",
+  borderColor: "#00f5ff",
+  boostBorderColor: "#f72585",
+  neonPool: ["#00f5ff", "#9d4edd", "#00ff87", "#ffd700", "#f72585"],
+  boardBg: "rgba(0,12,24,0.92)",
+  textColor: "#00f5ff",
+  statColors: { score: "#00f5ff", lines: "#00ff87", combo: "#9d4edd", level: "#ffd700" },
+  block: { glow: true, glowBlur: 12, highlight: true, shadow: false, roundness: 1 },
+  effects: { scanline: false, vignette: true, particles: true, shake: true, crt: false },
+  css: {
+    borderGlow: "0 0 25px rgba(0,245,255,0.2), 0 0 50px rgba(0,245,255,0.1)",
+    boostGlow: "0 0 30px rgba(247,37,133,0.3), 0 0 60px rgba(0,245,255,0.15)",
+  },
+});
+
+themes.register("cloud", {
+  name: "Cloud Dancer",
+  colors: { I: "#a3c4d9", O: "#e8a598", T: "#c9b8db", S: "#a8c5a0", Z: "#d4a07a", J: "#8fa5b8", L: "#b5977e" },
+  puyoColors: ["#c9b8db", "#a8c5a0", "#e8a598", "#a3c4d9", "#b5977e"],
+  bg: "#f8f6f0",
+  gridColor: "rgba(140,130,120,0.08)",
+  borderColor: "#c9b8db",
+  boostBorderColor: "#e8a598",
+  neonPool: ["#c9b8db", "#a8c5a0", "#e8a598", "#a3c4d9", "#b5977e"],
+  boardBg: "rgba(248,246,240,0.85)",
+  textColor: "#6b6260",
+  statColors: { score: "#6b6260", lines: "#7a9b6e", combo: "#9b7cc3", level: "#b88a6b" },
+  block: { glow: false, glowBlur: 0, highlight: true, shadow: true, roundness: 4 },
+  effects: { scanline: false, vignette: false, particles: true, shake: true, crt: false },
+  css: {
+    borderGlow: "0 0 12px rgba(201,184,219,0.3)",
+    boostGlow: "0 0 18px rgba(232,165,152,0.35)",
+  },
+});
+
+themes.register("eclipse", {
+  name: "Solar Eclipse",
+  colors: { I: "#ff4d00", O: "#ffaa00", T: "#ff0000", S: "#444444", Z: "#666666", J: "#cc3300", L: "#ff6600" },
+  puyoColors: ["#ff4d00", "#ffaa00", "#ff0000", "#cc3300", "#ff6600"],
+  bg: "#000000",
+  gridColor: "rgba(255,77,0,0.04)",
+  borderColor: "#ff4d00",
+  boostBorderColor: "#ffaa00",
+  neonPool: ["#ff4d00", "#ffaa00", "#ff0000", "#ff6600", "#cc3300"],
+  boardBg: "rgba(0,0,0,0.95)",
+  textColor: "#ff4d00",
+  statColors: { score: "#ff4d00", lines: "#ffaa00", combo: "#ff0000", level: "#ff6600" },
+  block: { glow: true, glowBlur: 15, highlight: false, shadow: false, roundness: 0 },
+  effects: { scanline: false, vignette: true, particles: true, shake: true, crt: false },
+  css: {
+    borderGlow: "0 0 25px rgba(255,77,0,0.35), 0 0 60px rgba(255,170,0,0.15)",
+    boostGlow: "0 0 35px rgba(255,170,0,0.4), 0 0 80px rgba(255,0,0,0.2)",
+  },
 });
 
 // 기본 테마 적용

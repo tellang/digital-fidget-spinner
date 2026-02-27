@@ -36,8 +36,14 @@ class Game {
     this.idleTime = 0;
     this.currentOpacity = 1.0;
 
-    // 설정 로드
+    // 설정 로드 (토스 스타일: 첫 실행은 시간대 기반 자동 테마)
     settings.load().then(() => {
+      // 자동 테마: 설정에서 켜져 있으면 시간대 기반
+      if (settings.get("autoTheme")) {
+        const autoId = settings.getTimeBasedTheme();
+        themes.apply(autoId);
+      }
+
       // 설정 변경 감시
       settings.onChange((key, value) => {
         if (key === "theme") themes.apply(value);

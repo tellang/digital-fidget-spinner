@@ -9,6 +9,13 @@ class Renderer {
 
     // 글로우 타이머 (배경 펄스용)
     this.glowPhase = 0;
+
+    // 그리드 오프스크린 캐시 (테마 변경 시 무효화)
+    this._gridCache = null;
+    this._gridCacheTheme = null;
+
+    // 첫 프레임 렌더링 완료 플래그
+    this._firstFrameDone = false;
   }
 
   draw(state) {
@@ -64,6 +71,12 @@ class Renderer {
     if (state.gameOver) {
       this._drawGameOver(ctx, state);
     }
+
+    // 첫 프레임 렌더 완료 → 페이드인 트리거 (시작 시 투명 네모 방지)
+    if (!this._firstFrameDone) {
+      this._firstFrameDone = true;
+      document.body.classList.add("ready");
+    }
   }
 
   _drawBoardBg(ctx) {
@@ -76,21 +89,29 @@ class Renderer {
     ctx.fillStyle = t.boardBg;
     ctx.fillRect(x, y, w, h);
 
-    // 그리드 라인
-    ctx.strokeStyle = C.GRID_COLOR;
-    ctx.lineWidth = 0.5;
-    for (let r = 0; r <= C.ROWS; r++) {
-      ctx.beginPath();
-      ctx.moveTo(x, y + r * C.CELL);
-      ctx.lineTo(x + w, y + r * C.CELL);
-      ctx.stroke();
+    // 그리드 라인: 오프스크린 캐시 (테마 변경 시만 재생성)
+    if (this._gridCacheTheme !== t.id) {
+      const gc = document.createElement("canvas");
+      gc.width = w;
+      gc.height = h;
+      const gctx = gc.getContext("2d");
+      gctx.strokeStyle = C.GRID_COLOR;
+      gctx.lineWidth = 0.5;
+      // 단일 패스: 모든 라인을 하나의 path로 묶어 stroke 1회
+      gctx.beginPath();
+      for (let r = 0; r <= C.ROWS; r++) {
+        gctx.moveTo(0, r * C.CELL);
+        gctx.lineTo(w, r * C.CELL);
+      }
+      for (let c = 0; c <= C.COLS; c++) {
+        gctx.moveTo(c * C.CELL, 0);
+        gctx.lineTo(c * C.CELL, h);
+      }
+      gctx.stroke();
+      this._gridCache = gc;
+      this._gridCacheTheme = t.id;
     }
-    for (let c = 0; c <= C.COLS; c++) {
-      ctx.beginPath();
-      ctx.moveTo(x + c * C.CELL, y);
-      ctx.lineTo(x + c * C.CELL, y + h);
-      ctx.stroke();
-    }
+    ctx.drawImage(this._gridCache, x, y);
 
     // 네온 테두리
     const pulse = 0.4 + Math.sin(this.glowPhase) * 0.15;
@@ -121,14 +142,18 @@ class Renderer {
     const y = C.BOARD_Y + row * C.CELL;
     const s = C.CELL - 1;
 
-    ctx.save();
-    ctx.globalAlpha = alpha;
+    // save/restore 최소화: glow 필요 시에만 사용
+    const needsSave = b.glow || alpha !== 1.0;
+    if (needsSave) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      if (b.glow) {
+        ctx.shadowBlur = b.glowBlur;
+        ctx.shadowColor = color;
+      }
+    }
 
-    // 글로우 (테마 설정에 따라)
-    ctx.shadowBlur = b.glow ? b.glowBlur : 0;
-    ctx.shadowColor = b.glow ? color : "transparent";
     ctx.fillStyle = color;
-
     if (b.roundness > 0) {
       this._roundRect(ctx, x + 1, y + 1, s - 1, s - 1, b.roundness);
       ctx.fill();
@@ -136,23 +161,25 @@ class Renderer {
       ctx.fillRect(x + 1, y + 1, s - 1, s - 1);
     }
 
-    ctx.shadowBlur = 0;
+    if (needsSave) {
+      ctx.shadowBlur = 0;
+    }
 
-    // 하이라이트 (테마 설정에 따라)
+    // 하이라이트
     if (b.highlight) {
       ctx.fillStyle = "rgba(255,255,255,0.2)";
       ctx.fillRect(x + 1, y + 1, s - 1, 2);
       ctx.fillRect(x + 1, y + 1, 2, s - 1);
     }
 
-    // 그림자 (테마 설정에 따라)
+    // 그림자
     if (b.shadow) {
       ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(x + s - 2, y + 1, 2, s - 1);
       ctx.fillRect(x + 1, y + s - 2, s - 1, 2);
     }
 
-    ctx.restore();
+    if (needsSave) ctx.restore();
   }
 
   _roundRect(ctx, x, y, w, h, r) {
@@ -170,26 +197,26 @@ class Renderer {
   }
 
   _drawGhost(ctx, cells, color) {
+    const s = C.CELL - 1;
+    // 배치 드로우: save/restore 2회로 통합
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = color;
+    ctx.globalAlpha = 0.15;
     for (const [r, c] of cells) {
       if (r < 0) continue;
-      const x = C.BOARD_X + c * C.CELL;
-      const y = C.BOARD_Y + r * C.CELL;
-      const s = C.CELL - 1;
-      ctx.save();
-      ctx.globalAlpha = 0.15;
-      ctx.fillStyle = color;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = color;
-      ctx.fillRect(x + 1, y + 1, s - 1, s - 1);
-      ctx.restore();
-
-      ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 1, y + 1, s - 1, s - 1);
-      ctx.restore();
+      ctx.fillRect(C.BOARD_X + c * C.CELL + 1, C.BOARD_Y + r * C.CELL + 1, s - 1, s - 1);
     }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    for (const [r, c] of cells) {
+      if (r < 0) continue;
+      ctx.strokeRect(C.BOARD_X + c * C.CELL + 1, C.BOARD_Y + r * C.CELL + 1, s - 1, s - 1);
+    }
+    ctx.restore();
   }
 
   _drawPiece(ctx, cells, color) {
@@ -345,7 +372,7 @@ class Renderer {
     ctx.shadowBlur = 8;
     ctx.fillText(`SCORE: ${this._formatNum(state.score || 0)}`, cx, cy + 22);
 
-    const restartAlpha = 0.5 + Math.sin(Date.now() / 300) * 0.5;
+    const restartAlpha = 0.5 + Math.sin(this.glowPhase * 3) * 0.5;
     ctx.globalAlpha = restartAlpha;
     ctx.font = '7px "Courier New", monospace';
     ctx.fillStyle = "#ffee00";

@@ -7,7 +7,15 @@
     "start": "npx serve . -l 1420 --no-clipboard",
     "tauri": "tauri",
     "tauri:dev": "npx tauri dev",
-    "tauri:build": "npx tauri build"
+    "tauri:build": "npx tauri build",
+    "test": "node --test tests/*.test.js",
+    "test:themes": "node --test tests/themes.test.js",
+    "test:effects": "node --test tests/effects.test.js",
+    "test:renderer": "node --test tests/renderer.test.js",
+    "test:settings": "node --test tests/settings.test.js",
+    "test:board": "node --test tests/board.test.js",
+    "test:game": "node --test tests/game.test.js",
+    "test:perf": "node --test tests/perf.test.js"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
