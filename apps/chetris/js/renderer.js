@@ -16,6 +16,8 @@ class Renderer {
     // 그리드 오프스크린 캐시 (테마 변경 시 무효화)
     this._gridCache = null;
     this._gridCacheTheme = null;
+    this._puyoGridCache = null;
+    this._puyoGridCacheTheme = null;
 
     // 배치 블록 오프스크린 캐시
     this._boardBlocksCache = null;
@@ -39,29 +41,56 @@ class Renderer {
     ctx.save();
     ctx.translate(shake.x, shake.y);
 
-    this._drawBoardBg(ctx);
-    this._drawPlacedBlocks(ctx, state.board);
+    if (state.gameMode === "puyo") {
+      this._drawPuyoBoardBg(ctx);
+      this._drawPuyoPlacedBlocks(ctx, state);
 
-    // 고스트 피스
-    if (state.ghostCells) {
-      this._drawGhost(ctx, state.ghostCells, state.currentColor);
+      // 현재 뿌요 쌍 + 고스트
+      if (state.currentPair) {
+        this._drawCurrentPuyoPair(ctx, state.currentPair);
+        this._drawPuyoGhostPair(ctx, state);
+      }
+    } else {
+      // 기존 테트리스 렌더링
+      this._drawBoardBg(ctx);
+      this._drawPlacedBlocks(ctx, state.board);
+
+      // 고스트 피스
+      if (state.ghostCells) {
+        this._drawGhost(ctx, state.ghostCells, state.currentColor);
+      }
+
+      // 현재 피스
+      if (state.currentCells) {
+        this._drawPiece(ctx, state.currentCells, state.currentColor);
+      }
     }
 
-    // 현재 피스
-    if (state.currentCells) {
-      this._drawPiece(ctx, state.currentCells, state.currentColor);
-    }
-
-    // 라인 클리어 플래시
+    // 라인 클리어 플래시 (모드 공통)
     if (state.flash) {
       state.flash.draw(ctx);
     }
 
-    // 사이드 패널
-    this._drawSidePanel(ctx, state);
+    if (state.gameMode === "puyo") {
+      // 사이드 패널
+      this._drawPuyoSidePanel(ctx, state);
 
-    // 헤더
-    this._drawHeader(ctx, state);
+      // 헤더
+      this._drawHeader(ctx, state);
+
+      // 체인 텍스트 애니메이션
+      if (state.chainDisplays) {
+        for (const cd of state.chainDisplays) {
+          this._drawChainText(ctx, cd.chain, cd.x, cd.y, cd.progress);
+        }
+      }
+    } else {
+      // 사이드 패널
+      this._drawSidePanel(ctx, state);
+
+      // 헤더
+      this._drawHeader(ctx, state);
+    }
 
     ctx.restore();
 
@@ -133,6 +162,51 @@ class Renderer {
     ctx.restore();
   }
 
+  _drawPuyoBoardBg(ctx) {
+    const t = themes.active;
+    const x = PUYO.BOARD_X;
+    const y = PUYO.BOARD_Y;
+    const w = PUYO.COLS * PUYO.CELL;
+    const h = PUYO.ROWS * PUYO.CELL;
+
+    ctx.fillStyle = t.boardBg;
+    ctx.fillRect(x, y, w, h);
+
+    // 그리드 라인: 오프스크린 캐시 (테마 변경 시만 재생성)
+    if (this._puyoGridCacheTheme !== t.id) {
+      const gc = document.createElement("canvas");
+      gc.width = w;
+      gc.height = h;
+      const gctx = gc.getContext("2d");
+      gctx.strokeStyle = C.GRID_COLOR;
+      gctx.lineWidth = 0.5;
+      gctx.beginPath();
+      for (let r = 0; r <= PUYO.ROWS; r++) {
+        gctx.moveTo(0, r * PUYO.CELL);
+        gctx.lineTo(w, r * PUYO.CELL);
+      }
+      for (let c = 0; c <= PUYO.COLS; c++) {
+        gctx.moveTo(c * PUYO.CELL, 0);
+        gctx.lineTo(c * PUYO.CELL, h);
+      }
+      gctx.stroke();
+      this._puyoGridCache = gc;
+      this._puyoGridCacheTheme = t.id;
+    }
+    ctx.drawImage(this._puyoGridCache, x, y);
+
+    // 네온 테두리
+    const pulse = 0.4 + Math.sin(this.glowPhase) * 0.15;
+    ctx.save();
+    ctx.strokeStyle = C.BORDER_COLOR;
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 12 + Math.sin(this.glowPhase) * 4;
+    ctx.shadowColor = C.BORDER_COLOR;
+    ctx.globalAlpha = pulse + 0.5;
+    ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.restore();
+  }
+
   _drawPlacedBlocks(ctx, board) {
     const themeId = themes.active.id;
     if (this._boardBlocksVersion !== board.version || this._boardBlocksTheme !== themeId) {
@@ -158,6 +232,24 @@ class Renderer {
       this._boardBlocksTheme = themeId;
     }
     ctx.drawImage(this._boardBlocksCache, C.BOARD_X, C.BOARD_Y);
+  }
+
+  _drawPuyoPlacedBlocks(ctx, state) {
+    const grid = state.puyoGrid;
+    if (!grid) return;
+
+    const puyoColors = themes.active.puyoColors;
+    const startRow = PUYO.HIDDEN_ROWS; // 숨김 행 스킵
+
+    for (let r = startRow; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        const colorIdx = grid[r][c];
+        if (colorIdx === 0) continue;
+        const color = puyoColors[(colorIdx - 1) % puyoColors.length];
+        const drawRow = r - startRow; // 화면상 행 (0-based)
+        this._drawPuyoCell(ctx, c, drawRow, color, 0.85);
+      }
+    }
   }
 
   _drawCell(ctx, col, row, color, alpha = 1.0) {
@@ -433,9 +525,9 @@ class Renderer {
   _drawPuyoCell(ctx, col, row, colorStr, alpha = 1.0) {
     const t = themes.active;
     const b = t.block;
-    const cx = C.BOARD_X + col * C.CELL + C.CELL / 2;
-    const cy = C.BOARD_Y + row * C.CELL + C.CELL / 2;
-    const r = (C.CELL - 2) / 2; // 반지름 (셀 간격 여유)
+    const cx = PUYO.BOARD_X + col * PUYO.CELL + PUYO.CELL / 2;
+    const cy = PUYO.BOARD_Y + row * PUYO.CELL + PUYO.CELL / 2;
+    const r = (PUYO.CELL - 2) / 2; // 반지름 (셀 간격 여유)
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -503,9 +595,9 @@ class Renderer {
 
   // 뿌요 고스트 피스: 반투명 원형 + 점선 테두리
   _drawPuyoGhost(ctx, col, row, colorStr) {
-    const cx = C.BOARD_X + col * C.CELL + C.CELL / 2;
-    const cy = C.BOARD_Y + row * C.CELL + C.CELL / 2;
-    const r = (C.CELL - 2) / 2;
+    const cx = PUYO.BOARD_X + col * PUYO.CELL + PUYO.CELL / 2;
+    const cy = PUYO.BOARD_Y + row * PUYO.CELL + PUYO.CELL / 2;
+    const r = (PUYO.CELL - 2) / 2;
 
     ctx.save();
 
@@ -529,20 +621,69 @@ class Renderer {
     ctx.restore();
   }
 
+  // 현재 떨어지는 뿌요 쌍 렌더링
+  _drawCurrentPuyoPair(ctx, pair) {
+    const puyoColors = themes.active.puyoColors;
+    const mainColor = puyoColors[(pair.mainColor - 1) % puyoColors.length];
+    const subColor = puyoColors[(pair.subColor - 1) % puyoColors.length];
+    const [dr, dc] = PUYO.PAIR_OFFSETS[pair.rotation];
+
+    const mainRow = pair.row - PUYO.HIDDEN_ROWS;
+    const subRow = pair.row + dr - PUYO.HIDDEN_ROWS;
+
+    if (mainRow >= 0) this._drawPuyoCell(ctx, pair.col, mainRow, mainColor);
+    if (subRow >= 0) this._drawPuyoCell(ctx, pair.col + dc, subRow, subColor);
+  }
+
+  // 현재 뿌요 쌍 고스트(최종 낙하 위치) 렌더링
+  _drawPuyoGhostPair(ctx, state) {
+    const pair = state.currentPair;
+    const grid = state.puyoGrid;
+    if (!pair || !grid || grid.length === 0) return;
+
+    const puyoColors = themes.active.puyoColors;
+    const mainColor = puyoColors[(pair.mainColor - 1) % puyoColors.length];
+    const subColor = puyoColors[(pair.subColor - 1) % puyoColors.length];
+    const [dr, dc] = PUYO.PAIR_OFFSETS[pair.rotation];
+    const cols = grid[0].length;
+
+    const isEmpty = (row, col) => {
+      if (row < 0) return true; // 상단 숨김 영역 위는 통과 허용
+      if (row >= grid.length) return false;
+      if (col < 0 || col >= cols) return false;
+      return grid[row][col] === 0;
+    };
+
+    let ghostMainRow = pair.row;
+    while (true) {
+      const nextMainRow = ghostMainRow + 1;
+      const nextSubRow = ghostMainRow + dr + 1;
+      if (!isEmpty(nextMainRow, pair.col)) break;
+      if (!isEmpty(nextSubRow, pair.col + dc)) break;
+      ghostMainRow++;
+    }
+
+    const mainRow = ghostMainRow - PUYO.HIDDEN_ROWS;
+    const subRow = ghostMainRow + dr - PUYO.HIDDEN_ROWS;
+
+    if (mainRow >= 0) this._drawPuyoGhost(ctx, pair.col, mainRow, mainColor);
+    if (subRow >= 0) this._drawPuyoGhost(ctx, pair.col + dc, subRow, subColor);
+  }
+
   // 뿌요 모드 사이드 패널 (NEXT/SCORE/CHAIN/LEVEL/SPEED)
   _drawPuyoSidePanel(ctx, state) {
-    const sx = C.SIDE_X;
-    const sy = C.SIDE_Y;
+    const sx = PUYO.SIDE_X;
+    const sy = PUYO.BOARD_Y;
     const pw = C.CANVAS_W - sx - 8;
     const t = themes.active;
 
     // 사이드 패널 배경
     ctx.save();
     ctx.fillStyle = t.boardBg;
-    ctx.fillRect(sx, sy, pw, C.ROWS * C.CELL);
+    ctx.fillRect(sx, sy, pw, PUYO.ROWS * PUYO.CELL);
     ctx.strokeStyle = t.gridColor;
     ctx.lineWidth = 1;
-    ctx.strokeRect(sx, sy, pw, C.ROWS * C.CELL);
+    ctx.strokeRect(sx, sy, pw, PUYO.ROWS * PUYO.CELL);
     ctx.restore();
 
     let cy = sy + 8;
@@ -562,7 +703,7 @@ class Renderer {
       const previewCx = sx + pw / 2;
 
       // 위쪽 뿌요 (축 뿌요)
-      const color1 = puyoColors[state.nextPuyoPair[0] % puyoColors.length];
+      const color1 = puyoColors[(state.nextPuyoPair[0] - 1) % puyoColors.length];
       const py1 = cy + 8;
       const grad1 = ctx.createRadialGradient(
         previewCx - 1, py1 - 1, 1, previewCx, py1, previewR
@@ -575,7 +716,7 @@ class Renderer {
       ctx.fill();
 
       // 아래쪽 뿌요 (회전 뿌요)
-      const color2 = puyoColors[state.nextPuyoPair[1] % puyoColors.length];
+      const color2 = puyoColors[(state.nextPuyoPair[1] - 1) % puyoColors.length];
       const py2 = py1 + previewR * 2 + 2;
       const grad2 = ctx.createRadialGradient(
         previewCx - 1, py2 - 1, 1, previewCx, py2, previewR

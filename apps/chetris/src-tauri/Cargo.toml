@@ -1,6 +1,6 @@
 [package]
 name = "chatris"
-version = "4.0.0"
+version = "4.1.0"
 description = "채팅 반응형 자동 테트리스 데스크탑 오버레이 위젯"
 edition = "2021"
 

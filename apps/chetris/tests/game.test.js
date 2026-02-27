@@ -3,7 +3,7 @@ const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 
 const ctx = require("./loader");
-const { Game, Board, AI, themes, settings, C } = ctx;
+const { Game, Board, AI, PuyoBoard, PuyoAI, PUYO, themes, settings, C } = ctx;
 
 describe("Game 초기화", () => {
   it("Game 클래스가 존재해야 한다", () => {
@@ -128,5 +128,138 @@ describe("점수 계산 로직", () => {
 
   it("콤보 보너스 = 50점", () => {
     assert.equal(C.COMBO_BONUS, 50);
+  });
+});
+
+// === 뿌요 모드 통합 테스트 ===
+
+describe("뿌요 모드 클래스", () => {
+  it("PuyoBoard 클래스가 존재해야 한다", () => {
+    assert.ok(typeof PuyoBoard === "function");
+  });
+
+  it("PuyoAI 클래스가 존재해야 한다", () => {
+    assert.ok(typeof PuyoAI === "function");
+  });
+
+  it("PUYO 상수가 존재해야 한다", () => {
+    assert.ok(PUYO);
+    assert.equal(PUYO.COLS, 6);
+    assert.equal(PUYO.ROWS, 12);
+    assert.equal(PUYO.HIDDEN_ROWS, 1);
+    assert.equal(PUYO.COLORS, 4);
+  });
+});
+
+describe("뿌요 모드 초기화", () => {
+  it("PuyoBoard 보드 크기 6x13 (12+1 숨김행)", () => {
+    const board = new PuyoBoard();
+    assert.equal(board.cols, PUYO.COLS);
+    assert.equal(board.rows, PUYO.ROWS + PUYO.HIDDEN_ROWS);
+    assert.equal(board.grid.length, 13);
+    assert.equal(board.grid[0].length, 6);
+  });
+
+  it("PuyoBoard 빈 보드는 모두 0이어야 한다", () => {
+    const board = new PuyoBoard();
+    for (let r = 0; r < board.rows; r++) {
+      for (let c = 0; c < board.cols; c++) {
+        assert.equal(board.grid[r][c], 0);
+      }
+    }
+  });
+
+  it("PuyoAI 가중치가 올바르게 초기화되어야 한다", () => {
+    const ai = new PuyoAI();
+    assert.equal(ai.weights.chainPotential, 5.0);
+    assert.equal(ai.weights.height, -0.5);
+    assert.equal(ai.weights.flatness, 0.3);
+  });
+});
+
+describe("뿌요 상수", () => {
+  it("PAIR_OFFSETS 4방향 정의", () => {
+    assert.equal(PUYO.PAIR_OFFSETS.length, 4);
+    assert.deepEqual(PUYO.PAIR_OFFSETS[0], [-1, 0]); // 위
+    assert.deepEqual(PUYO.PAIR_OFFSETS[1], [0, 1]);  // 오른쪽
+    assert.deepEqual(PUYO.PAIR_OFFSETS[2], [1, 0]);  // 아래
+    assert.deepEqual(PUYO.PAIR_OFFSETS[3], [0, -1]); // 왼쪽
+  });
+
+  it("상태머신 상수 정의", () => {
+    assert.ok(PUYO.STATE.SPAWNING);
+    assert.ok(PUYO.STATE.DROPPING);
+    assert.ok(PUYO.STATE.SETTLING);
+    assert.ok(PUYO.STATE.MATCHING);
+    assert.ok(PUYO.STATE.CHAINING);
+    assert.ok(PUYO.STATE.GAME_OVER);
+  });
+
+  it("CHAIN_POWER 배열 정의", () => {
+    assert.ok(Array.isArray(PUYO.CHAIN_POWER));
+    assert.ok(PUYO.CHAIN_POWER.length >= 10);
+    assert.equal(PUYO.CHAIN_POWER[0], 0); // 1체인: 보너스 0
+    assert.equal(PUYO.CHAIN_POWER[2], 8); // 3체인: 보너스 8
+  });
+
+  it("타이밍 상수 정의", () => {
+    assert.equal(PUYO.SETTLE_TIME, 200);
+    assert.equal(PUYO.POP_TIME, 300);
+    assert.equal(typeof PUYO.BASE_DROP_DELAY, "number");
+    assert.equal(typeof PUYO.BASE_MOVE_DELAY, "number");
+  });
+});
+
+describe("뿌요 모드 게임 로직", () => {
+  it("settings에 gameMode 필드가 존재해야 한다", () => {
+    const mode = settings.get("gameMode");
+    assert.ok(mode === "tetris" || mode === "puyo",
+      `gameMode가 '${mode}' (tetris 또는 puyo 기대)`);
+  });
+
+  it("Game 클래스에 gameMode 속성이 있어야 한다", () => {
+    assert.ok(typeof Game === "function");
+    // Game은 DOM에 의존하므로 인스턴스 생성 대신 프로토타입 확인
+    assert.ok(typeof Game.prototype._updatePuyo === "function",
+      "_updatePuyo 메서드 미정의");
+    assert.ok(typeof Game.prototype._spawnPuyoPair === "function",
+      "_spawnPuyoPair 메서드 미정의");
+    assert.ok(typeof Game.prototype._tryPuyoMove === "function",
+      "_tryPuyoMove 메서드 미정의");
+    assert.ok(typeof Game.prototype._tryPuyoRotate === "function",
+      "_tryPuyoRotate 메서드 미정의");
+  });
+
+  it("Game._restart 메서드가 존재해야 한다", () => {
+    assert.ok(typeof Game.prototype._restart === "function");
+  });
+});
+
+describe("뿌요 점수 계산", () => {
+  it("단순 4개 매칭 점수: 10 * 4 * 1 = 40", () => {
+    const board = new PuyoBoard();
+    const groups = [{ color: 1, cells: [[12, 0], [12, 1], [12, 2], [12, 3]] }];
+    const score = board.calcChainScore(1, groups);
+    assert.equal(score, 40, `점수 ${score} (기대: 40)`);
+  });
+
+  it("2체인 점수가 1체인보다 높아야 한다", () => {
+    const board = new PuyoBoard();
+    const groups = [{ color: 1, cells: [[12, 0], [12, 1], [12, 2], [12, 3]] }];
+    const s1 = board.calcChainScore(1, groups);
+    const s2 = board.calcChainScore(2, groups);
+    assert.ok(s2 > s1, `2체인(${s2}) <= 1체인(${s1})`);
+  });
+
+  it("다색 보너스: 2색 > 1색", () => {
+    const board = new PuyoBoard();
+    const oneColor = [{ color: 1, cells: [[12, 0], [12, 1], [12, 2], [12, 3]] }];
+    const twoColor = [
+      { color: 1, cells: [[12, 0], [12, 1], [12, 2], [12, 3]] },
+      { color: 2, cells: [[11, 0], [11, 1], [11, 2], [11, 3]] },
+    ];
+    const s1 = board.calcChainScore(1, oneColor);
+    const s2 = board.calcChainScore(1, twoColor);
+    assert.ok(s2 > s1, `2색(${s2}) <= 1색(${s1})`);
   });
 });

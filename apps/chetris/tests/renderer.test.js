@@ -3,7 +3,7 @@ const { describe, it, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 
 const ctx = require("./loader");
-const { Renderer, themes, Board } = ctx;
+const { Renderer, themes, Board, PuyoBoard, PUYO } = ctx;
 const { MockCanvas, MockContext } = require("./setup");
 
 describe("Renderer", () => {
@@ -177,6 +177,113 @@ describe("Renderer", () => {
 
     it("_parseColor: 잘못된 형식은 null", () => {
       assert.equal(renderer._parseColor("invalid"), null);
+    });
+  });
+
+  describe("뿌요 모드 렌더링", () => {
+    it("_drawPuyoCell 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoCell === "function");
+    });
+
+    it("_drawPuyoGhost 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoGhost === "function");
+    });
+
+    it("_drawPuyoSidePanel 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoSidePanel === "function");
+    });
+
+    it("_drawChainText 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawChainText === "function");
+    });
+
+    it("_drawPuyoBoardBg 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoBoardBg === "function");
+    });
+
+    it("_drawPuyoPlacedBlocks 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoPlacedBlocks === "function");
+    });
+
+    it("_drawCurrentPuyoPair 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawCurrentPuyoPair === "function");
+    });
+
+    it("_drawPuyoGhostPair 메서드가 존재해야 한다", () => {
+      assert.ok(typeof renderer._drawPuyoGhostPair === "function");
+    });
+
+    it("_drawPuyoCell 호출 시 에러 없이 실행", () => {
+      const mockCtx = new MockContext();
+      renderer._drawPuyoCell(mockCtx, 2, 5, "#ff0040", 1.0);
+      assert.ok(mockCtx._drawCalls > 0, "뿌요 셀 드로우 호출 없음");
+    });
+
+    it("_drawPuyoGhost 호출 시 에러 없이 실행", () => {
+      const mockCtx = new MockContext();
+      renderer._drawPuyoGhost(mockCtx, 3, 8, "#00ff00");
+      assert.ok(mockCtx._saves >= 1, "고스트 save 미호출");
+    });
+
+    it("_drawChainText 호출 시 에러 없이 실행", () => {
+      const mockCtx = new MockContext();
+      renderer._drawChainText(mockCtx, 3, 50, 100, 0.5);
+      assert.ok(mockCtx._drawCalls > 0, "체인 텍스트 드로우 미호출");
+    });
+
+    it("뿌요 모드 draw()에서 뿌요 보드 렌더링", () => {
+      const board = new PuyoBoard();
+      board.place(12, 2, 1);
+      const mockCtx = new MockContext();
+      globalThis.document.body.classList._set.clear();
+      renderer.draw({
+        gameMode: "puyo",
+        board,
+        puyoGrid: board.grid,
+        currentPair: null,
+        nextPuyoPair: [1, 2],
+        chainCount: 0,
+        maxChain: 0,
+        chainDisplays: [],
+        score: 100,
+        lines: 0,
+        combo: 0,
+        level: 1,
+        boost: 1,
+        particles: { draw() {} },
+        shake: { getOffset() { return { x: 0, y: 0 }; } },
+        flash: { draw() {} },
+        chat: { draw() {} },
+        gameOver: false,
+      });
+      assert.ok(renderer._firstFrameDone);
+    });
+
+    it("뿌요 그리드 캐시 초기화", () => {
+      const canvas = new MockCanvas(164, 252);
+      const r = new Renderer(canvas);
+      assert.equal(r._puyoGridCache, null);
+      assert.equal(r._puyoGridCacheTheme, null);
+    });
+
+    it("_drawPuyoBoardBg 호출 후 캐시 생성", () => {
+      const mockCtx = new MockContext();
+      renderer._drawPuyoBoardBg(mockCtx);
+      assert.ok(renderer._puyoGridCache, "뿌요 그리드 캐시 미생성");
+      assert.equal(renderer._puyoGridCacheTheme, themes.active.id);
+    });
+
+    it("_drawPuyoSidePanel에 nextPuyoPair 렌더링 확인", () => {
+      const mockCtx = new MockContext();
+      renderer._drawPuyoSidePanel(mockCtx, {
+        nextPuyoPair: [1, 3],
+        score: 500,
+        maxChain: 2,
+        combo: 1,
+        level: 1,
+        boost: 1,
+      });
+      assert.ok(mockCtx._drawCalls > 0, "사이드 패널 드로우 미호출");
     });
   });
 });

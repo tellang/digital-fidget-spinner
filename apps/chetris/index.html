@@ -265,6 +265,10 @@
     <div class="ctx-item" data-theme="cloud"><span class="ctx-dot"></span>Cloud</div>
     <div class="ctx-item" data-theme="eclipse"><span class="ctx-dot"></span>Eclipse</div>
     <div class="ctx-sep"></div>
+    <div class="ctx-label">MODE</div>
+    <div class="ctx-item ctx-mode" data-mode="tetris"><span class="ctx-dot"></span>테트리스</div>
+    <div class="ctx-item ctx-mode" data-mode="puyo"><span class="ctx-dot"></span>뿌요뿌요</div>
+    <div class="ctx-sep"></div>
     <div class="ctx-label">SETTINGS</div>
     <div class="ctx-item ctx-toggle" data-key="particles"><span class="ctx-check"></span>파티클</div>
     <div class="ctx-item ctx-toggle" data-key="shake"><span class="ctx-check"></span>진동</div>
@@ -291,6 +295,9 @@
   <script src="js/settings.js"></script>
   <script src="js/constants.js"></script>
   <script src="js/board.js"></script>
+  <script src="js/puyo-constants.js"></script>
+  <script src="js/puyo-board.js"></script>
+  <script src="js/puyo-ai.js"></script>
   <script src="js/effects.js"></script>
   <script src="js/input.js"></script>
   <script src="js/ai.js"></script>
@@ -331,6 +338,11 @@
           var t = themes.get(el.dataset.theme);
           if (t) el.style.color = active ? t.borderColor : '';
         });
+        // 모드 상태 반영
+        menu.querySelectorAll('.ctx-mode').forEach(function(el) {
+          var active = settings.get('gameMode') === el.dataset.mode;
+          el.classList.toggle('active', active);
+        });
         menu.querySelectorAll('.ctx-toggle').forEach(function(el) {
           el.classList.toggle('checked', !!settings.get(el.dataset.key));
         });
@@ -360,6 +372,15 @@
           themes.apply(el.dataset.theme);
           settings.set('theme', el.dataset.theme);
           updateState();
+        });
+      });
+
+      // 모드 선택
+      menu.querySelectorAll('.ctx-mode').forEach(function(el) {
+        el.addEventListener('click', function() {
+          settings.set('gameMode', el.dataset.mode);
+          updateState();
+          menu.style.display = 'none';
         });
       });
 
