@@ -157,4 +157,44 @@ describe("PuyoAI", () => {
       assert.equal(result.subColor, 2);
     });
   });
+
+  describe("2-피스 룩어헤드", () => {
+    it("nextPair 전달 시 유효한 이동 반환", () => {
+      const ai = new PuyoAI();
+      const board = new PuyoBoard();
+      const pair = { mainColor: 1, subColor: 2 };
+      const nextPair = { mainColor: 1, subColor: 1 };
+      const move = ai.findBestMove(board, pair, nextPair);
+      assert.ok(move !== null);
+      assert.ok(move.col >= 0 && move.col < PUYO.COLS);
+    });
+
+    it("nextPair 없이 호출해도 동작 (하위 호환)", () => {
+      const ai = new PuyoAI();
+      const board = new PuyoBoard();
+      const pair = { mainColor: 1, subColor: 2 };
+      const move = ai.findBestMove(board, pair);
+      assert.ok(move !== null);
+    });
+  });
+
+  describe("개선된 가중치", () => {
+    it("colorGrouping 가중치가 2.5이어야 한다", () => {
+      const ai = new PuyoAI();
+      assert.strictEqual(ai.weights.colorGrouping, 2.5);
+    });
+
+    it("edgePenalty가 평가에 반영되어야 한다", () => {
+      const ai = new PuyoAI();
+      const board1 = new PuyoBoard();
+      const board2 = new PuyoBoard();
+      // board2에 가장자리 뿌요 배치
+      board2.place(12, 0, 1);
+      board2.place(11, 0, 2);
+      board2.place(12, 5, 3);
+      const score1 = ai._evaluate(board1);
+      const score2 = ai._evaluate(board2);
+      assert.ok(score2 < score1, '가장자리 뿌요가 있으면 점수 하락');
+    });
+  });
 });

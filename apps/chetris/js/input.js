@@ -28,6 +28,26 @@ class InputHandler {
     };
     document.addEventListener("keydown", this._onKey);
 
+    // 모바일 터치 지원: 탭 = 키 입력 (부스트 + 하드드롭)
+    this._onTouch = (e) => {
+      // 설정 버튼/메뉴 위 터치는 무시
+      if (e.target.closest("#ctx-menu") || e.target.closest("#mobile-settings")) return;
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        this._onInput();
+        this.pendingChars.push("·");
+      }
+    };
+    document.addEventListener("touchstart", this._onTouch, { passive: false });
+
+    // 클릭 폴백 (터치 이벤트 미지원 환경)
+    this._onClick = (e) => {
+      if (e.target.closest("#ctx-menu") || e.target.closest("#mobile-settings")) return;
+      this._onInput();
+      this.pendingChars.push("·");
+    };
+    document.addEventListener("click", this._onClick);
+
     // Tauri 이벤트 리스너
     this._unlisteners = [];
     if (window.__TAURI__) {
@@ -65,6 +85,7 @@ class InputHandler {
 
   destroy() {
     document.removeEventListener("keydown", this._onKey);
+    document.removeEventListener("touchstart", this._onTouch);
     for (const u of this._unlisteners) u();
   }
 }

@@ -47,6 +47,18 @@ document.addEventListener("keydown", function(e) {
 (function() {
   var menu = document.getElementById("ctx-menu");
 
+  function applyResolution(res) {
+    var container = document.getElementById("game-container");
+    if (res === "large") {
+      container.removeAttribute("data-resolution");
+    } else {
+      container.setAttribute("data-resolution", res);
+    }
+  }
+
+  // 초기 해상도 적용
+  applyResolution(settings.get("resolution") || "large");
+
   function updateState() {
     menu.querySelectorAll("[data-theme]").forEach(function(el) {
       var active = themes.active && themes.active.id === el.dataset.theme;
@@ -60,6 +72,10 @@ document.addEventListener("keydown", function(e) {
     });
     menu.querySelectorAll(".ctx-toggle").forEach(function(el) {
       el.classList.toggle("checked", !!settings.get(el.dataset.key));
+    });
+    menu.querySelectorAll(".ctx-res").forEach(function(el) {
+      var active = settings.get("resolution") === el.dataset.res;
+      el.classList.toggle("active", active);
     });
   }
 
@@ -79,42 +95,84 @@ document.addEventListener("keydown", function(e) {
     menu.style.top = Math.max(2, y) + "px";
   });
 
-  // 좌클릭 외부 → 메뉴 닫기 (브라우저 모드)
+  // 좌클릭/터치 외부 → 메뉴 닫기 (브라우저 모드)
   document.addEventListener("mousedown", function(e) {
-    if (e.button === 0 && !menu.contains(e.target)) {
+    if (e.button === 0 && !menu.contains(e.target) && !e.target.closest("#mobile-settings")) {
+      menu.style.display = "none";
+    }
+  });
+  document.addEventListener("touchstart", function(e) {
+    if (!menu.contains(e.target) && !e.target.closest("#mobile-settings")) {
       menu.style.display = "none";
     }
   });
 
-  // 테마 선택
-  menu.querySelectorAll("[data-theme]").forEach(function(el) {
-    el.addEventListener("click", function() {
-      themes.apply(el.dataset.theme);
-      settings.set("theme", el.dataset.theme);
+  // 모바일 설정 버튼
+  var mobileBtn = document.getElementById("mobile-settings");
+  if (mobileBtn) {
+    mobileBtn.addEventListener("touchend", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
       updateState();
+      menu.style.display = "block";
+      menu.style.left = "2px";
+      menu.style.top = "2px";
     });
+    mobileBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      updateState();
+      menu.style.display = "block";
+      menu.style.left = "2px";
+      menu.style.top = "2px";
+    });
+  }
+
+  // 테마 선택
+  function onTheme(el) {
+    themes.apply(el.dataset.theme);
+    settings.set("theme", el.dataset.theme);
+    updateState();
+  }
+  menu.querySelectorAll("[data-theme]").forEach(function(el) {
+    el.addEventListener("click", function() { onTheme(el); });
+    el.addEventListener("touchend", function(e) { e.preventDefault(); onTheme(el); });
   });
 
   // 모드 선택
+  function onMode(el) {
+    settings.set("gameMode", el.dataset.mode);
+    updateState();
+    menu.style.display = "none";
+  }
   menu.querySelectorAll(".ctx-mode").forEach(function(el) {
-    el.addEventListener("click", function() {
-      settings.set("gameMode", el.dataset.mode);
-      updateState();
-      menu.style.display = "none";
-    });
+    el.addEventListener("click", function() { onMode(el); });
+    el.addEventListener("touchend", function(e) { e.preventDefault(); onMode(el); });
+  });
+
+  // 해상도 선택
+  function onRes(el) {
+    settings.set("resolution", el.dataset.res);
+    applyResolution(el.dataset.res);
+    updateState();
+  }
+  menu.querySelectorAll(".ctx-res").forEach(function(el) {
+    el.addEventListener("click", function() { onRes(el); });
+    el.addEventListener("touchend", function(e) { e.preventDefault(); onRes(el); });
   });
 
   // 설정 토글
+  function onToggle(el) {
+    var key = el.dataset.key;
+    var val = !settings.get(key);
+    settings.set(key, val);
+    if (key === "autoStart" && window.__TAURI__) {
+      window.__TAURI__.core.invoke("set_auto_start", { enable: val });
+    }
+    updateState();
+  }
   menu.querySelectorAll(".ctx-toggle").forEach(function(el) {
-    el.addEventListener("click", function() {
-      var key = el.dataset.key;
-      var val = !settings.get(key);
-      settings.set(key, val);
-      if (key === "autoStart" && window.__TAURI__) {
-        window.__TAURI__.core.invoke("set_auto_start", { enable: val });
-      }
-      updateState();
-    });
+    el.addEventListener("click", function() { onToggle(el); });
+    el.addEventListener("touchend", function(e) { e.preventDefault(); onToggle(el); });
   });
 
   // 위치 이동

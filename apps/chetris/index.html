@@ -30,6 +30,16 @@
       transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
 
+    /* 해상도 프리셋 (브라우저 모드 전용) */
+    #game-container[data-resolution="small"] {
+      max-width: 164px;
+      max-height: 252px;
+    }
+    #game-container[data-resolution="medium"] {
+      max-width: 246px;
+      max-height: 378px;
+    }
+
     #game-container.boosted {
       box-shadow: var(--theme-boost-glow, 0 0 30px rgba(255,0,64,0.4));
       border-color: var(--theme-boost-border, #ff0040);
@@ -101,6 +111,26 @@
     @keyframes pulse {
       0%, 100% { opacity: 0.4; }
       50% { opacity: 0.8; }
+    }
+
+    #mobile-settings {
+      display: none;
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      font-size: 14px;
+      line-height: 24px;
+      text-align: center;
+      color: rgba(255,255,255,0.3);
+      cursor: pointer;
+      z-index: 10;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #mobile-settings:active { color: rgba(255,255,255,0.8); }
+    @media (pointer: coarse) {
+      #mobile-settings { display: block; }
     }
 
     /* 컨텍스트 메뉴 */
@@ -373,6 +403,7 @@
     <div id="scanline"></div>
     <div id="vignette"></div>
     <div id="hint">⌨ TYPE TO ACCELERATE</div>
+    <div id="mobile-settings">⚙</div>
   </div>
 
   <!-- 토스트 업데이트 알림 (토스 스타일: 조용히 업데이트, 알림만 살짝) -->
@@ -397,6 +428,11 @@
     <div class="ctx-label">MODE</div>
     <div class="ctx-item ctx-mode" data-mode="tetris"><span class="ctx-dot"></span>테트리스</div>
     <div class="ctx-item ctx-mode" data-mode="puyo"><span class="ctx-dot"></span>뿌요뿌요</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-label">SIZE</div>
+    <div class="ctx-item ctx-res" data-res="small"><span class="ctx-dot"></span>Small</div>
+    <div class="ctx-item ctx-res" data-res="medium"><span class="ctx-dot"></span>Medium</div>
+    <div class="ctx-item ctx-res" data-res="large"><span class="ctx-dot"></span>Large</div>
     <div class="ctx-sep"></div>
     <div class="ctx-label">SETTINGS</div>
     <div class="ctx-item ctx-toggle" data-key="particles"><span class="ctx-check"></span>파티클</div>

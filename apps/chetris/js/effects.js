@@ -79,8 +79,8 @@ class ParticleSystem {
 
   // 뿌요 터짐 — 원형으로 퍼지는 파티클
   puyoPop(row, col, color) {
-    const x = C.BOARD_X + col * C.CELL + C.CELL / 2;
-    const y = C.BOARD_Y + row * C.CELL + C.CELL / 2;
+    const x = PUYO.BOARD_X + col * PUYO.CELL + PUYO.CELL / 2;
+    const y = PUYO.BOARD_Y + row * PUYO.CELL + PUYO.CELL / 2;
     const count = 8 + Math.floor(Math.random() * 5);
 
     for (let i = 0; i < count; i++) {

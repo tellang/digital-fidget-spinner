@@ -518,7 +518,7 @@ class Game {
     this.nextPair = this._generatePuyoPair();
 
     // AI 이동 결정
-    const bestMove = this.ai.findBestMove(this.board, this.currentPair);
+    const bestMove = this.ai.findBestMove(this.board, this.currentPair, this.nextPair);
     if (bestMove) {
       this.moveQueue = this.ai.buildMoveQueue(this.currentPair, bestMove);
     } else {
@@ -625,7 +625,20 @@ class Game {
         const cy = PUYO.BOARD_Y + (PUYO.ROWS * PUYO.CELL) / 2;
         this.chainDisplays.push({ chain: this.chainCount, x: cx, y: cy, progress: 0 });
 
-        // 이펙트
+        // 파티클: 각 터진 뿌요에서 puyoPop 발생
+        if (themes.active.effects.particles && settings.get("particles")) {
+          const puyoColors = themes.active.puyoColors;
+          for (const group of this.pendingChainGroups) {
+            for (const cell of group.cells) {
+              const color = puyoColors[(group.color - 1) % puyoColors.length];
+              this.particles.puyoPop(cell[0] - PUYO.HIDDEN_ROWS, cell[1], color);
+            }
+          }
+          // 연쇄 폭발: 체인 수에 비례하는 큰 파티클
+          this.particles.chainBurst(cx, cy, this.chainCount);
+        }
+
+        // 흔들림
         if (themes.active.effects.shake && settings.get("shake")) {
           this.shake.trigger(this.chainCount * 3);
         }

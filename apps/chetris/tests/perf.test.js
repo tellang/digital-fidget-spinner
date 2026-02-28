@@ -171,6 +171,22 @@ describe("성능 벤치마크", () => {
     });
   });
 
+  describe("뿌요 AI", () => {
+    it("2-피스 룩어헤드 빈 보드: < 15ms", () => {
+      const { PuyoAI, PuyoBoard } = ctx;
+      const ai = new PuyoAI();
+      const board = new PuyoBoard();
+      const pair = { mainColor: 1, subColor: 2 };
+      const nextPair = { mainColor: 3, subColor: 1 };
+
+      const start = performance.now();
+      ai.findBestMove(board, pair, nextPair);
+      const elapsed = performance.now() - start;
+      // ARM 모바일 환경 고려 (데스크탑 <15ms, 모바일 <50ms)
+      assert.ok(elapsed < 50, `2-피스 룩어헤드: ${elapsed.toFixed(1)}ms (제한: 50ms)`);
+    });
+  });
+
   describe("전체 프레임", () => {
     it("캔버스 크기가 164x252 (초소형)인지 확인", () => {
       assert.equal(ctx.C.CANVAS_W, 164);

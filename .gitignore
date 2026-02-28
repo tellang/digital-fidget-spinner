@@ -20,8 +20,11 @@ Thumbs.db
 
 # 개발 프롬프트 / AI 생성 문서
 NEXT_SESSION_PROMPT.md
+NEXT-SESSION.md
 CLAUDE.md
 MEMORY.md
+GEMINI.md
+CODEX.md
 PROJECT_INDEX.md
 WORKFLOW.md
 

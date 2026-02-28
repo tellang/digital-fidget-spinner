@@ -11,6 +11,7 @@ class Settings {
     autoFadeOpacity: 0.15,
     autoStart: true,
     autoTheme: false,
+    resolution: "large",
   };
   #listeners = new Set();
   #loaded = false;

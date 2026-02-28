@@ -171,9 +171,11 @@ describe("뿌요 모드 초기화", () => {
 
   it("PuyoAI 가중치가 올바르게 초기화되어야 한다", () => {
     const ai = new PuyoAI();
-    assert.equal(ai.weights.chainPotential, 5.0);
-    assert.equal(ai.weights.height, -0.5);
+    assert.equal(ai.weights.chainPotential, 4.0);
+    assert.equal(ai.weights.height, -0.8);
     assert.equal(ai.weights.flatness, 0.3);
+    assert.equal(ai.weights.colorGrouping, 2.5);
+    assert.equal(ai.weights.edgePenalty, -0.5);
   });
 });
 

@@ -251,4 +251,18 @@ describe("AI 내부 평가 함수", () => {
       assert.ok(!queue.includes("rotateCW") && !queue.includes("rotateCCW"));
     });
   });
+
+  describe("Lee 최적화 가중치", () => {
+    it("lines 가중치가 Lee 최적값(0.760666)이어야 한다", () => {
+      assert.strictEqual(ai.w.lines, 0.760666);
+    });
+
+    it("height 가중치가 Lee 최적값(-0.510066)이어야 한다", () => {
+      assert.strictEqual(ai.w.height, -0.510066);
+    });
+
+    it("holes 가중치가 Lee 최적값(-0.35663)이어야 한다", () => {
+      assert.strictEqual(ai.w.holes, -0.35663);
+    });
+  });
 });

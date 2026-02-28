@@ -2,11 +2,12 @@
 
 class AI {
   constructor() {
+    // Yiyuan Lee 유전 알고리즘 최적화값 (218만 라인 검증)
     this.w = {
-      height: -0.51,
-      lines: 3.6,
-      holes: -0.36,
-      bumpiness: -0.18,
+      height: -0.510066,
+      lines: 0.760666,
+      holes: -0.35663,
+      bumpiness: -0.184483,
     };
   }
 
@@ -55,7 +56,7 @@ class AI {
         if (piece.type === "T" && lines > 0) {
           const fakePiece = { type: "T", rotation: rot, x, y: dropY };
           if (board.checkTSpin(fakePiece)) {
-            score += 2.0 * lines;
+            score += 3.0 * lines;
           }
         }
 
