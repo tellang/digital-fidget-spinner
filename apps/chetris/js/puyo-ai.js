@@ -67,7 +67,10 @@ class PuyoAI {
     const targetRot = target.rotation || 0;
     const currCol = current.col !== undefined ? current.col : current.x;
     const targetCol = target.col !== undefined ? target.col : target.x;
+    const totalDowns = boardSafeRows(current, target);
+    let downsUsed = 0;
 
+    // 1) 회전 — 상단에서 빠르게 (공간 넉넉)
     const cw = (targetRot - currRot + 4) % 4;
     const ccw = (currRot - targetRot + 4) % 4;
     if (cw <= ccw) {
@@ -76,15 +79,18 @@ class PuyoAI {
       for (let i = 0; i < ccw; i++) queue.push('rotateCCW');
     }
 
+    // 2) 수평 이동 — 빠르게 한 번에 (보드 6칸이라 즉시 도달)
     const diff = targetCol - currCol;
     if (diff < 0) {
       for (let i = 0; i < -diff; i++) queue.push('left');
-    } else {
+    } else if (diff > 0) {
       for (let i = 0; i < diff; i++) queue.push('right');
     }
 
-    for (let i = 0; i < boardSafeRows(current, target); i++) {
+    // 4) 나머지 낙하
+    while (downsUsed < totalDowns) {
       queue.push('down');
+      downsUsed++;
     }
     return queue;
   }

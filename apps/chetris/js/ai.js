@@ -75,21 +75,35 @@ class AI {
 
   buildMoveQueue(current, target) {
     const queue = [];
+    const totalDowns = C.ROWS;
+    let downsUsed = 0;
+
+    // 1) 회전 — 상단에서 빠르게 (공간 넉넉)
     let rotDiff = (target.rotation - current.rotation + 4) % 4;
     if (rotDiff === 3) {
       queue.push("rotateCCW");
     } else {
       for (let i = 0; i < rotDiff; i++) queue.push("rotateCW");
     }
+
+    // 2) 회전 후 1칸 낙하 — 시각적으로 떨어지기 시작
+    if (rotDiff > 0 && downsUsed < totalDowns) {
+      queue.push("down");
+      downsUsed++;
+    }
+
+    // 3) 수평 이동 — 빠르게 한 번에 (70ms씩, 끊기지 않음)
     const dx = target.x - current.x;
     if (dx < 0) {
       for (let i = 0; i < -dx; i++) queue.push("left");
     } else if (dx > 0) {
       for (let i = 0; i < dx; i++) queue.push("right");
     }
-    // 하드드롭 대신 한 칸씩 내려오기 (자연스러운 중력)
-    for (let i = 0; i < C.ROWS; i++) {
+
+    // 4) 나머지 낙하
+    while (downsUsed < totalDowns) {
       queue.push("down");
+      downsUsed++;
     }
     return queue;
   }

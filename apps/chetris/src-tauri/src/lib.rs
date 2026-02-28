@@ -62,6 +62,15 @@ fn save_settings(json: String) {
 }
 
 #[tauri::command]
+fn open_settings_window(app: tauri::AppHandle, x: i32, y: i32) {
+    if let Some(win) = app.get_webview_window("settings") {
+        let _ = win.set_position(PhysicalPosition::new(x, y));
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+}
+
+#[tauri::command]
 fn set_auto_start(enable: bool) {
     // Windows 시작 프로그램 등록 (레지스트리)
     #[cfg(target_os = "windows")]
@@ -88,7 +97,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
-            exit_app, load_settings, save_settings, set_auto_start, position_window_cmd, install_update
+            exit_app, load_settings, save_settings, set_auto_start, position_window_cmd, install_update, open_settings_window
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();

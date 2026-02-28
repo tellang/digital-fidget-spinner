@@ -22,9 +22,9 @@ document.addEventListener("click", function() {
 // Tauri ESC 종료 핸들러
 document.addEventListener("keydown", function(e) {
   if (e.key === "Escape" && window.__TAURI__) {
-    // 메뉴가 열려있으면 메뉴만 닫기
+    // 브라우저 모드: 인라인 메뉴 닫기
     var menu = document.getElementById("ctx-menu");
-    if (menu.style.display !== "none" && menu.style.display !== "") {
+    if (menu && menu.style.display !== "none" && menu.style.display !== "") {
       menu.style.display = "none";
       return;
     }
@@ -32,7 +32,18 @@ document.addEventListener("keydown", function(e) {
   }
 });
 
-// 컨텍스트 메뉴
+// Tauri 윈도우 드래그 (data-tauri-drag-region 대체 — 우클릭 비간섭)
+(function() {
+  if (!window.__TAURI__) return;
+  var container = document.getElementById("game-container");
+  container.addEventListener("mousedown", function(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest("#ctx-menu")) return;
+    window.__TAURI__.webviewWindow.getCurrentWebviewWindow().startDragging();
+  });
+})();
+
+// 컨텍스트 메뉴 (우클릭)
 (function() {
   var menu = document.getElementById("ctx-menu");
 
@@ -43,7 +54,6 @@ document.addEventListener("keydown", function(e) {
       var t = themes.get(el.dataset.theme);
       if (t) el.style.color = active ? t.borderColor : "";
     });
-    // 모드 상태 반영
     menu.querySelectorAll(".ctx-mode").forEach(function(el) {
       var active = settings.get("gameMode") === el.dataset.mode;
       el.classList.toggle("active", active);
@@ -53,9 +63,14 @@ document.addEventListener("keydown", function(e) {
     });
   }
 
-  // 우클릭 → 메뉴 표시
+  // 우클릭 → Tauri: 외부 설정 윈도우, 브라우저: 인라인 메뉴
   document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
+    if (window.__TAURI__) {
+      window.__TAURI__.core.invoke("open_settings_window", { x: e.screenX, y: e.screenY });
+      return;
+    }
+    // 브라우저 폴백: 인라인 메뉴
     updateState();
     menu.style.display = "block";
     var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 2);
@@ -64,7 +79,7 @@ document.addEventListener("keydown", function(e) {
     menu.style.top = Math.max(2, y) + "px";
   });
 
-  // 좌클릭 외부 → 메뉴 닫기
+  // 좌클릭 외부 → 메뉴 닫기 (브라우저 모드)
   document.addEventListener("mousedown", function(e) {
     if (e.button === 0 && !menu.contains(e.target)) {
       menu.style.display = "none";
@@ -127,6 +142,133 @@ document.addEventListener("keydown", function(e) {
     });
   } else {
     verEl.textContent = "CHATRIS (dev)";
+  }
+})();
+
+// 외부 설정 윈도우에서 변경된 설정 수신
+(function() {
+  if (!window.__TAURI__) return;
+  window.__TAURI__.event.listen("settings-changed", function(e) {
+    settings.set(e.payload.key, e.payload.value);
+  });
+})();
+
+// === 설정 패널 모드 (#settings 해시 라우트) ===
+(function() {
+  if (window.location.hash !== "#settings") return;
+  document.body.classList.add("settings-mode");
+
+  // 설정 로드 대기 후 초기화
+  settings.load().then(function() {
+    var themeList = themes.names.map(function(id) {
+      var t = themes.get(id);
+      return { id: id, name: t.name, color: t.borderColor };
+    });
+
+    // 테마 그리드 빌드
+    var grid = document.getElementById("sp-themes");
+    themeList.forEach(function(t) {
+      var btn = document.createElement("div");
+      btn.className = "sp-btn";
+      btn.dataset.theme = t.id;
+      btn.innerHTML = '<span class="sp-dot" style="color:' + t.color + '"></span>' + t.name;
+      btn.addEventListener("click", function() {
+        settings.set("theme", t.id);
+        notifyMain("theme", t.id);
+        spUpdate();
+      });
+      grid.appendChild(btn);
+    });
+
+    // 모드
+    document.querySelectorAll(".sp-mode-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        settings.set("gameMode", btn.dataset.mode);
+        notifyMain("gameMode", btn.dataset.mode);
+        spUpdate();
+      });
+    });
+
+    // 토글
+    document.querySelectorAll(".sp-switch").forEach(function(sw) {
+      sw.addEventListener("click", function() {
+        var key = sw.dataset.key;
+        var val = !settings.get(key);
+        settings.set(key, val);
+        notifyMain(key, val);
+        if (key === "autoStart" && window.__TAURI__) {
+          window.__TAURI__.core.invoke("set_auto_start", { enable: val });
+        }
+        spUpdate();
+      });
+    });
+
+    // 위치
+    document.querySelectorAll(".sp-pos-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        if (window.__TAURI__) {
+          window.__TAURI__.core.invoke("position_window_cmd", { position: btn.dataset.pos });
+        }
+      });
+    });
+
+    // 닫기 (숨기기)
+    document.getElementById("sp-close").addEventListener("click", function() {
+      if (window.__TAURI__) {
+        window.__TAURI__.webviewWindow.getCurrentWebviewWindow().hide();
+      }
+    });
+
+    // 종료
+    document.getElementById("sp-quit").addEventListener("click", function() {
+      if (window.__TAURI__) {
+        window.__TAURI__.core.invoke("exit_app");
+      }
+    });
+
+    // ESC 닫기
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" && window.__TAURI__) {
+        window.__TAURI__.webviewWindow.getCurrentWebviewWindow().hide();
+      }
+    });
+
+    // 버전
+    if (window.__TAURI__) {
+      window.__TAURI__.app.getVersion().then(function(v) {
+        document.getElementById("sp-ver").textContent = "CHATRIS v" + v;
+      });
+    }
+
+    // 윈도우 다시 보일 때 설정 새로고침
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden) {
+        settings.load().then(spUpdate);
+      }
+    });
+
+    spUpdate();
+  });
+
+  function notifyMain(key, value) {
+    if (window.__TAURI__) {
+      window.__TAURI__.event.emit("settings-changed", { key: key, value: value });
+    }
+  }
+
+  function spUpdate() {
+    // 테마
+    document.querySelectorAll("#sp-themes .sp-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.theme === settings.get("theme"));
+    });
+    // 모드
+    document.querySelectorAll(".sp-mode-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.mode === settings.get("gameMode"));
+    });
+    // 토글
+    document.querySelectorAll(".sp-switch").forEach(function(sw) {
+      sw.classList.toggle("on", !!settings.get(sw.dataset.key));
+    });
   }
 })();
 

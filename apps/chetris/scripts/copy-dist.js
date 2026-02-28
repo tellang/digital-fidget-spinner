@@ -16,5 +16,8 @@ function copyDir(src, dest) {
 
 fs.mkdirSync("dist", { recursive: true });
 fs.copyFileSync("index.html", path.join("dist", "index.html"));
+if (fs.existsSync("settings.html")) {
+    fs.copyFileSync("settings.html", path.join("dist", "settings.html"));
+}
 copyDir("js", path.join("dist", "js"));
 console.log("dist/ 복사 완료");

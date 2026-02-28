@@ -65,6 +65,12 @@ class Game {
 
     // 설정 로드 (토스 스타일: 첫 실행은 시간대 기반 자동 테마)
     settings.load().then(() => {
+      // 저장된 gameMode와 다르면 재시작
+      const savedMode = settings.get("gameMode") || "tetris";
+      if (savedMode !== this.gameMode) {
+        this.gameMode = savedMode;
+        this._restart();
+      }
       // 자동 테마: 설정에서 켜져 있으면 시간대 기반
       if (settings.get("autoTheme")) {
         const autoId = settings.getTimeBasedTheme();
@@ -114,6 +120,11 @@ class Game {
     try {
       this._update(dt);
       this._render();
+    } catch (e) {
+      if (!this._loggedError) {
+        console.error("[CHATRIS] 게임 루프 에러:", e);
+        this._loggedError = true;
+      }
     } finally {
       this._scheduleNext();
     }
@@ -177,15 +188,32 @@ class Game {
     }
 
     if (this.gameMode === "puyo") {
+      // 키 입력 시 AI 이동 즉시 완료 + 하드드롭
+      if (drops > 0 && this.currentPair && this.puyoState === PUYO.STATE.DROPPING) {
+        while (this.moveQueue.length > 0) {
+          const move = this.moveQueue.shift();
+          if (move === "down") continue;
+          this._executePuyoMove(move);
+          if (!this.currentPair) break;
+        }
+        // 바닥까지 떨어뜨리기
+        if (this.currentPair) {
+          while (this._tryPuyoMove(0, 1)) {}
+          this.moveQueue = [];
+          this.settleTimer = 0;
+          this.puyoState = PUYO.STATE.SETTLING;
+        }
+      }
       this._updatePuyo(dt);
     } else {
       // 키 입력 시 AI 이동 즉시 완료 + 하드드롭
       if (drops > 0 && this.current) {
-        // 큐에 남은 회전/이동을 전부 즉시 실행 (down 제외)
+        // 큐에 남은 회전/이동을 전부 즉시 실행 (중간 down은 건너뛰기)
         while (this.moveQueue.length > 0) {
           const move = this.moveQueue[0];
-          if (move === "down" || move === "drop") break;
+          if (move === "drop") break;
           this.moveQueue.shift();
+          if (move === "down") continue;
           this._executeMove(move);
           if (!this.current) return;
         }
@@ -531,6 +559,11 @@ class Game {
         break;
       }
     }
+
+    // AI 이동 큐 소진 시 자동 낙하 (프리징 방지)
+    if (this.moveQueue.length === 0 && this.puyoState === PUYO.STATE.DROPPING) {
+      this.moveQueue.push("down");
+    }
   }
 
   _executePuyoMove(move) {
@@ -684,6 +717,7 @@ class Game {
 
     if (this.gameMode === "puyo") {
       this.board = new PuyoBoard();
+      this.ai = new PuyoAI();
       this.puyoState = PUYO.STATE.SPAWNING;
       this.chainCount = 0;
       this.maxChain = 0;
@@ -693,11 +727,15 @@ class Game {
       this.settleTimer = 0;
       this.chainTimer = 0;
       this.pendingChainGroups = null;
+      this.current = null;
+      this.next = null;
     } else {
       this.board = new Board();
+      this.ai = new AI();
       this._cachedGhostY = null;
       this._cachedCells = null;
       this._cachedGhostCells = null;
+      this.currentPair = null;
       this.bag = [];
       this._fillBag();
       this.next = this._spawnPiece();
@@ -777,7 +815,8 @@ class Game {
   }
 }
 
-// 페이지 로드 시 게임 시작
+// 페이지 로드 시 게임 시작 (설정 윈도우에서는 건너뜀)
 window.addEventListener("DOMContentLoaded", () => {
+  if (window.location.hash === "#settings") return;
   window._game = new Game();
 });

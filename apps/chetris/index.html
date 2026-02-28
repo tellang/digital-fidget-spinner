@@ -25,7 +25,6 @@
       height: 100%;
       border: 2px solid var(--theme-border, #00fff2);
       border-radius: 8px;
-      -webkit-app-region: drag;
       cursor: move;
       box-shadow: var(--theme-glow, 0 0 20px rgba(0,255,242,0.3));
       transition: box-shadow 0.3s ease, border-color 0.3s ease;
@@ -195,6 +194,142 @@
       letter-spacing: 0.5px;
     }
 
+    /* === 설정 패널 (외부 윈도우용 — #settings 해시 라우트) === */
+    body.settings-mode { background: #0d0d1a; }
+    body.settings-mode #game-container,
+    body.settings-mode #update-toast,
+    body.settings-mode #ctx-menu { display: none !important; }
+
+    #settings-panel {
+      display: none;
+      padding: 0;
+      font-family: 'Segoe UI', 'Courier New', monospace;
+      font-size: 13px;
+      color: #e0e0e0;
+      overflow-y: auto;
+      height: 100vh;
+      scrollbar-width: none;
+    }
+    #settings-panel::-webkit-scrollbar { display: none; }
+    body.settings-mode #settings-panel { display: block; }
+
+    .sp-titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      -webkit-app-region: drag;
+    }
+    .sp-titlebar h1 {
+      font-size: 13px; font-weight: 600;
+      color: var(--theme-border, #00fff2);
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+    }
+    .sp-close {
+      -webkit-app-region: no-drag;
+      width: 22px; height: 22px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: none; color: #666;
+      border-radius: 4px; cursor: pointer;
+      font-size: 13px; display: flex;
+      align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .sp-close:hover { background: rgba(255,0,64,0.15); color: #ff0040; border-color: rgba(255,0,64,0.4); }
+
+    .sp-content { padding: 12px 14px 14px; }
+    .sp-section { margin-bottom: 14px; }
+    .sp-title {
+      font-size: 9px; color: rgba(255,255,255,0.3);
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-bottom: 8px; font-family: 'Courier New', monospace;
+    }
+
+    .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sp-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px; cursor: pointer;
+      color: #999; font-size: 12px; transition: all 0.15s;
+    }
+    .sp-btn:hover { background: rgba(255,255,255,0.05); }
+    .sp-btn.active {
+      border-color: var(--theme-border, #00fff2);
+      background: rgba(0,255,242,0.05); color: #fff;
+    }
+    .sp-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; background: currentColor; opacity: 0.6;
+    }
+    .sp-btn.active .sp-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+
+    .sp-mode { display: flex; gap: 5px; }
+    .sp-mode-btn {
+      flex: 1; padding: 8px; text-align: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px; cursor: pointer;
+      color: #999; font-size: 12px; transition: all 0.15s;
+    }
+    .sp-mode-btn:hover { background: rgba(255,255,255,0.05); }
+    .sp-mode-btn.active {
+      border-color: var(--theme-border, #00fff2);
+      background: rgba(0,255,242,0.05); color: #fff;
+    }
+
+    .sp-toggle-row {
+      display: flex; align-items: center;
+      justify-content: space-between; padding: 5px 0;
+    }
+    .sp-toggle-label { color: #aaa; font-size: 12px; }
+    .sp-switch {
+      position: relative; width: 34px; height: 18px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 9px; cursor: pointer;
+      transition: background 0.2s; flex-shrink: 0;
+    }
+    .sp-switch.on { background: rgba(0,255,242,0.35); }
+    .sp-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      background: #666; border-radius: 50%; transition: all 0.2s;
+    }
+    .sp-switch.on .sp-knob {
+      left: 18px;
+      background: var(--theme-border, #00fff2);
+      box-shadow: 0 0 6px var(--theme-border, #00fff2);
+    }
+
+    .sp-pos { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sp-pos-btn {
+      padding: 8px; text-align: center; font-size: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px; cursor: pointer;
+      color: #888; transition: all 0.15s;
+    }
+    .sp-pos-btn:hover { background: rgba(0,255,242,0.06); border-color: rgba(0,255,242,0.25); color: #ccc; }
+
+    .sp-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 10px 0; }
+    .sp-quit {
+      width: 100%; padding: 8px;
+      background: rgba(255,0,64,0.06);
+      border: 1px solid rgba(255,0,64,0.15);
+      border-radius: 6px; color: #ff0040;
+      cursor: pointer; font-size: 12px; font-family: inherit; transition: all 0.15s;
+    }
+    .sp-quit:hover { background: rgba(255,0,64,0.12); border-color: rgba(255,0,64,0.4); }
+    .sp-ver {
+      text-align: center; font-size: 9px;
+      color: rgba(255,255,255,0.15); margin-top: 10px;
+      font-family: 'Courier New', monospace; letter-spacing: 1px;
+    }
+
     /* 업데이트 토스트 (토스 스타일: 비침투적, 자동 사라짐) */
     #update-toast {
       position: fixed;
@@ -233,7 +368,7 @@
   </style>
 </head>
 <body>
-  <div id="game-container" data-tauri-drag-region>
+  <div id="game-container">
     <canvas id="canvas"></canvas>
     <div id="scanline"></div>
     <div id="vignette"></div>
@@ -283,6 +418,47 @@
     <div class="ctx-item ctx-quit">종료</div>
     <div class="ctx-sep"></div>
     <div class="ctx-ver" id="ctx-ver">CHATRIS</div>
+  </div>
+
+  <!-- 설정 패널 (외부 윈도우용 — #settings 해시 라우트) -->
+  <div id="settings-panel">
+    <div class="sp-titlebar" data-tauri-drag-region>
+      <h1>CHATRIS SETTINGS</h1>
+      <button class="sp-close" id="sp-close">&times;</button>
+    </div>
+    <div class="sp-content">
+      <div class="sp-section">
+        <div class="sp-title">Theme</div>
+        <div class="sp-grid" id="sp-themes"></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">Mode</div>
+        <div class="sp-mode">
+          <div class="sp-mode-btn" data-mode="tetris">테트리스</div>
+          <div class="sp-mode-btn" data-mode="puyo">뿌요뿌요</div>
+        </div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">Options</div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">파티클</span><div class="sp-switch" data-key="particles"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">진동</span><div class="sp-switch" data-key="shake"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">자동 페이드</span><div class="sp-switch" data-key="autoFade"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">시작프로그램</span><div class="sp-switch" data-key="autoStart"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">자동 테마</span><div class="sp-switch" data-key="autoTheme"><div class="sp-knob"></div></div></div>
+      </div>
+      <div class="sp-section">
+        <div class="sp-title">Position</div>
+        <div class="sp-pos">
+          <div class="sp-pos-btn" data-pos="tl">↖</div>
+          <div class="sp-pos-btn" data-pos="tr">↗</div>
+          <div class="sp-pos-btn" data-pos="bl">↙</div>
+          <div class="sp-pos-btn" data-pos="br">↘</div>
+        </div>
+      </div>
+      <div class="sp-sep"></div>
+      <button class="sp-quit" id="sp-quit">종료</button>
+      <div class="sp-ver" id="sp-ver">CHATRIS</div>
+    </div>
   </div>
 
   <script src="js/themes.js"></script>

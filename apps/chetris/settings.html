@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHATRIS Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0d0d1a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', 'Courier New', monospace;
+      font-size: 13px;
+      user-select: none;
+      overflow-y: auto;
+      padding: 0;
+      scrollbar-width: none;
+    }
+    body::-webkit-scrollbar { display: none; }
+
+    /* 커스텀 타이틀바 */
+    .titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      -webkit-app-region: drag;
+    }
+    .titlebar h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent, #00fff2);
+      letter-spacing: 2px;
+      font-family: 'Courier New', monospace;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      width: 22px; height: 22px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: none;
+      color: #666;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .close-btn:hover {
+      background: rgba(255,0,64,0.15);
+      color: #ff0040;
+      border-color: rgba(255,0,64,0.4);
+    }
+
+    .content { padding: 12px 14px 14px; }
+
+    /* 섹션 */
+    .section { margin-bottom: 14px; }
+    .section-title {
+      font-size: 9px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* 테마 그리드 */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .theme-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #999;
+      font-size: 12px;
+    }
+    .theme-btn:hover { background: rgba(255,255,255,0.05); }
+    .theme-btn.active {
+      border-color: var(--accent, #00fff2);
+      background: rgba(0,255,242,0.05);
+      color: #fff;
+    }
+    .theme-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: currentColor;
+      opacity: 0.6;
+    }
+    .theme-btn.active .theme-dot {
+      opacity: 1;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    /* 모드 */
+    .mode-row { display: flex; gap: 5px; }
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      color: #999;
+      transition: all 0.15s;
+      font-size: 12px;
+    }
+    .mode-btn:hover { background: rgba(255,255,255,0.05); }
+    .mode-btn.active {
+      border-color: var(--accent, #00fff2);
+      background: rgba(0,255,242,0.05);
+      color: #fff;
+    }
+
+    /* 토글 스위치 */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 0;
+    }
+    .toggle-label { color: #aaa; font-size: 12px; }
+    .toggle-switch {
+      position: relative;
+      width: 34px; height: 18px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.on { background: rgba(0,255,242,0.35); }
+    .toggle-knob {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 14px; height: 14px;
+      background: #666;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .toggle-switch.on .toggle-knob {
+      left: 18px;
+      background: var(--accent, #00fff2);
+      box-shadow: 0 0 6px var(--accent, #00fff2);
+    }
+
+    /* 위치 그리드 */
+    .pos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .pos-btn {
+      padding: 8px;
+      text-align: center;
+      font-size: 16px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      color: #888;
+      transition: all 0.15s;
+    }
+    .pos-btn:hover {
+      background: rgba(0,255,242,0.06);
+      border-color: rgba(0,255,242,0.25);
+      color: #ccc;
+    }
+
+    /* 구분선 */
+    .sep {
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+      margin: 10px 0;
+    }
+
+    /* 종료 */
+    .quit-btn {
+      width: 100%;
+      padding: 8px;
+      background: rgba(255,0,64,0.06);
+      border: 1px solid rgba(255,0,64,0.15);
+      border-radius: 6px;
+      color: #ff0040;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .quit-btn:hover {
+      background: rgba(255,0,64,0.12);
+      border-color: rgba(255,0,64,0.4);
+    }
+
+    /* 버전 */
+    .version {
+      text-align: center;
+      font-size: 9px;
+      color: rgba(255,255,255,0.15);
+      margin-top: 10px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar" data-tauri-drag-region>
+    <h1>CHATRIS SETTINGS</h1>
+    <button class="close-btn" id="close-btn">&times;</button>
+  </div>
+
+  <div class="content">
+    <div class="section">
+      <div class="section-title">Theme</div>
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <div class="mode-row">
+        <div class="mode-btn" data-mode="tetris">테트리스</div>
+        <div class="mode-btn" data-mode="puyo">뿌요뿌요</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Options</div>
+      <div class="toggle-row">
+        <span class="toggle-label">파티클</span>
+        <div class="toggle-switch" data-key="particles"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">진동</span>
+        <div class="toggle-switch" data-key="shake"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">자동 페이드</span>
+        <div class="toggle-switch" data-key="autoFade"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">시작프로그램</span>
+        <div class="toggle-switch" data-key="autoStart"><div class="toggle-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">자동 테마</span>
+        <div class="toggle-switch" data-key="autoTheme"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Position</div>
+      <div class="pos-grid">
+        <div class="pos-btn" data-pos="tl">↖</div>
+        <div class="pos-btn" data-pos="tr">↗</div>
+        <div class="pos-btn" data-pos="bl">↙</div>
+        <div class="pos-btn" data-pos="br">↘</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <button class="quit-btn" id="quit-btn">종료</button>
+    <div class="version" id="version">CHATRIS</div>
+  </div>
+
+  <script>
+    // 테마 목록 (메인 themes.js에서 추출 — 설정 윈도우는 독립 실행)
+    var themeList = [
+      { id: "cyberpunk", name: "Cyberpunk", color: "#00fff2" },
+      { id: "gameboy", name: "Game Boy", color: "#306230" },
+      { id: "pastel", name: "Pastel", color: "#dcd3ff" },
+      { id: "matrix", name: "Matrix", color: "#00ff41" },
+      { id: "glass", name: "Glass", color: "#7ec8ff" },
+      { id: "retro", name: "Retro", color: "#FFD500" },
+      { id: "vaporwave", name: "Vaporwave", color: "#ff71ce" },
+      { id: "abyss", name: "Abyss", color: "#00f5ff" },
+      { id: "cloud", name: "Cloud", color: "#c9b8db" },
+      { id: "eclipse", name: "Eclipse", color: "#ff4d00" },
+    ];
+
+    // 설정 데이터 (기본값)
+    var data = {
+      theme: "cyberpunk",
+      gameMode: "tetris",
+      particles: true,
+      shake: true,
+      autoFade: true,
+      autoFadeDelay: 5,
+      autoFadeOpacity: 0.15,
+      autoStart: true,
+      autoTheme: false,
+    };
+
+    // 설정 로드
+    async function loadData() {
+      if (!window.__TAURI__) return;
+      try {
+        var json = await window.__TAURI__.core.invoke("load_settings");
+        if (json) Object.assign(data, JSON.parse(json));
+      } catch (e) {}
+      applyAccent();
+      updateUI();
+    }
+
+    // 설정 저장 + 메인 윈도우 알림
+    async function saveAndNotify(key, value) {
+      data[key] = value;
+      var json = JSON.stringify(data);
+      if (window.__TAURI__) {
+        try { await window.__TAURI__.core.invoke("save_settings", { json: json }); } catch (e) {}
+        window.__TAURI__.event.emit("settings-changed", { key: key, value: value });
+      }
+    }
+
+    // 현재 테마 accent 색상 적용
+    function applyAccent() {
+      var theme = themeList.find(function(t) { return t.id === data.theme; });
+      if (theme) {
+        document.documentElement.style.setProperty("--accent", theme.color);
+      }
+    }
+
+    // UI 상태 갱신
+    function updateUI() {
+      // 테마
+      document.querySelectorAll(".theme-btn").forEach(function(btn) {
+        btn.classList.toggle("active", btn.dataset.theme === data.theme);
+      });
+      // 모드
+      document.querySelectorAll(".mode-btn").forEach(function(btn) {
+        btn.classList.toggle("active", btn.dataset.mode === data.gameMode);
+      });
+      // 토글
+      document.querySelectorAll(".toggle-switch").forEach(function(sw) {
+        sw.classList.toggle("on", !!data[sw.dataset.key]);
+      });
+    }
+
+    // 테마 그리드 빌드
+    var grid = document.getElementById("theme-grid");
+    themeList.forEach(function(t) {
+      var btn = document.createElement("div");
+      btn.className = "theme-btn";
+      btn.dataset.theme = t.id;
+      btn.innerHTML = '<span class="theme-dot" style="color:' + t.color + '"></span>' + t.name;
+      btn.addEventListener("click", function() {
+        saveAndNotify("theme", t.id);
+        applyAccent();
+        updateUI();
+      });
+      grid.appendChild(btn);
+    });
+
+    // 모드 버튼
+    document.querySelectorAll(".mode-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        saveAndNotify("gameMode", btn.dataset.mode);
+        updateUI();
+      });
+    });
+
+    // 토글 스위치
+    document.querySelectorAll(".toggle-switch").forEach(function(sw) {
+      sw.addEventListener("click", function() {
+        var key = sw.dataset.key;
+        var val = !data[key];
+        saveAndNotify(key, val);
+        if (key === "autoStart" && window.__TAURI__) {
+          window.__TAURI__.core.invoke("set_auto_start", { enable: val });
+        }
+        updateUI();
+      });
+    });
+
+    // 위치 버튼
+    document.querySelectorAll(".pos-btn").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        if (window.__TAURI__) {
+          window.__TAURI__.core.invoke("position_window_cmd", { position: btn.dataset.pos });
+        }
+      });
+    });
+
+    // 닫기 (숨기기 — 다시 열 수 있도록)
+    document.getElementById("close-btn").addEventListener("click", function() {
+      if (window.__TAURI__) {
+        window.__TAURI__.webviewWindow.getCurrentWebviewWindow().hide();
+      }
+    });
+
+    // 종료
+    document.getElementById("quit-btn").addEventListener("click", function() {
+      if (window.__TAURI__) {
+        window.__TAURI__.core.invoke("exit_app");
+      }
+    });
+
+    // 버전 표시
+    if (window.__TAURI__) {
+      window.__TAURI__.app.getVersion().then(function(v) {
+        document.getElementById("version").textContent = "CHATRIS v" + v;
+      });
+    }
+
+    // 메인 윈도우에서 보낸 설정 변경도 수신 (양방향 동기화)
+    if (window.__TAURI__) {
+      window.__TAURI__.event.listen("settings-changed", function(e) {
+        data[e.payload.key] = e.payload.value;
+        if (e.payload.key === "theme") applyAccent();
+        updateUI();
+      });
+    }
+
+    // ESC 키로 닫기
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape" && window.__TAURI__) {
+        window.__TAURI__.webviewWindow.getCurrentWebviewWindow().hide();
+      }
+    });
+
+    // 윈도우가 다시 보일 때 설정 새로고침
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden) loadData();
+    });
+
+    // 초기화
+    loadData();
+  </script>
+</body>
+</html>
