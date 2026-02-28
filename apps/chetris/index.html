@@ -116,19 +116,22 @@
     #mobile-settings {
       display: none;
       position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 24px;
-      height: 24px;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 20px;
+      padding: 12px;
       font-size: 14px;
-      line-height: 24px;
+      line-height: 20px;
       text-align: center;
-      color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.15);
       cursor: pointer;
       z-index: 10;
       -webkit-tap-highlight-color: transparent;
+      transition: color 0.2s;
     }
     #mobile-settings:active { color: rgba(255,255,255,0.8); }
+    #game-container:hover #mobile-settings { color: rgba(255,255,255,0.4); }
     @media (pointer: coarse) {
       #mobile-settings { display: block; }
     }
@@ -138,7 +141,9 @@
       display: none;
       position: fixed;
       z-index: 1000;
-      background: rgba(10, 10, 26, 0.96);
+      background: rgba(10, 10, 26, 0.82);
+      backdrop-filter: blur(16px) saturate(1.8);
+      -webkit-backdrop-filter: blur(16px) saturate(1.8);
       border: 1px solid var(--theme-border, #00fff2);
       border-radius: 5px;
       padding: 3px 0;
@@ -148,14 +153,23 @@
       color: rgba(255, 255, 255, 0.8);
       box-shadow: 0 0 12px rgba(0, 255, 242, 0.15);
       animation: ctx-in 0.12s ease;
+      transform-origin: top left;
       -webkit-app-region: no-drag;
       cursor: default;
       overflow-y: auto;
       max-height: calc(100vh - 8px);
     }
+    #ctx-menu.closing {
+      animation: ctx-out 0.08s ease forwards;
+      pointer-events: none;
+    }
     @keyframes ctx-in {
-      from { opacity: 0; transform: scale(0.96); }
-      to { opacity: 1; transform: scale(1); }
+      from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes ctx-out {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); }
     }
     .ctx-label {
       padding: 2px 7px 1px;

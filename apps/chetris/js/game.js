@@ -139,10 +139,17 @@ class Game {
     const drops = this.input.popHardDrops();
     for (const ch of chars) {
       this.chat.add(ch);
-      // 키 입력 시 파티클 스파크
-      const sx = C.BOARD_X + Math.random() * C.COLS * C.CELL;
-      const sy = C.BOARD_Y + C.ROWS * C.CELL;
-      this.particles.spark(sx, sy, C.NEON_POOL[Math.floor(Math.random() * C.NEON_POOL.length)]);
+      // 키 입력 시 파티클 스파크 (모드별 보드 좌표 사용)
+      if (this.gameMode === "puyo") {
+        const sx = PUYO.BOARD_X + Math.random() * PUYO.COLS * PUYO.CELL;
+        const sy = PUYO.BOARD_Y + (PUYO.ROWS - Math.random() * 3) * PUYO.CELL;
+        const puyoColors = themes.active.puyoColors;
+        this.particles.spark(sx, sy, puyoColors[Math.floor(Math.random() * puyoColors.length)]);
+      } else {
+        const sx = C.BOARD_X + Math.random() * C.COLS * C.CELL;
+        const sy = C.BOARD_Y + C.ROWS * C.CELL;
+        this.particles.spark(sx, sy, C.NEON_POOL[Math.floor(Math.random() * C.NEON_POOL.length)]);
+      }
     }
 
     // 이펙트 업데이트
@@ -190,6 +197,9 @@ class Game {
     if (this.gameMode === "puyo") {
       // 키 입력 시 AI 이동 즉시 완료 + 하드드롭
       if (drops > 0 && this.currentPair && this.puyoState === PUYO.STATE.DROPPING) {
+        // row=0에서 서브 뿌요가 보드 밖이면 이동 실패 → 최소 1행 내리기
+        const [sdr] = PUYO.PAIR_OFFSETS[this.currentPair.rotation];
+        if (this.currentPair.row + sdr < 0) this._tryPuyoMove(0, 1);
         while (this.moveQueue.length > 0) {
           const move = this.moveQueue.shift();
           if (move === "down") continue;

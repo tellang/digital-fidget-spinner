@@ -173,9 +173,11 @@ describe("뿌요 모드 초기화", () => {
     const ai = new PuyoAI();
     assert.equal(ai.weights.chainPotential, 4.0);
     assert.equal(ai.weights.height, -0.8);
-    assert.equal(ai.weights.flatness, 0.3);
+    assert.equal(ai.weights.flatness, 2.0);
     assert.equal(ai.weights.colorGrouping, 2.5);
     assert.equal(ai.weights.edgePenalty, -0.5);
+    assert.equal(ai.weights.slope, 0.6);
+    assert.ok(Array.isArray(ai.connectionScores));
   });
 });
 

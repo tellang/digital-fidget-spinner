@@ -29,19 +29,27 @@ class InputHandler {
     document.addEventListener("keydown", this._onKey);
 
     // 모바일 터치 지원: 탭 = 키 입력 (부스트 + 하드드롭)
+    // 멀티터치는 1회만 처리 (2-finger = 하드드롭 1회, 부스트만 추가)
+    this._recentTouch = false;
+    this._touchTimer = null;
     this._onTouch = (e) => {
-      // 설정 버튼/메뉴 위 터치는 무시
       if (e.target.closest("#ctx-menu") || e.target.closest("#mobile-settings")) return;
       e.preventDefault();
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        this._onInput();
-        this.pendingChars.push("·");
+      this._recentTouch = true;
+      clearTimeout(this._touchTimer);
+      this._touchTimer = setTimeout(() => { this._recentTouch = false; }, 400);
+      // 하드드롭은 1회만, 추가 터치는 부스트만
+      this._onInput();
+      this.pendingChars.push("·");
+      for (let i = 1; i < e.changedTouches.length; i++) {
+        this.boost = Math.min(this.maxBoost, this.boost + this.boostPerKey);
       }
     };
     document.addEventListener("touchstart", this._onTouch, { passive: false });
 
-    // 클릭 폴백 (터치 이벤트 미지원 환경)
+    // 클릭 폴백 (터치 이벤트 미지원 환경 — 터치 후 중복 click 방지)
     this._onClick = (e) => {
+      if (this._recentTouch) return;
       if (e.target.closest("#ctx-menu") || e.target.closest("#mobile-settings")) return;
       this._onInput();
       this.pendingChars.push("·");

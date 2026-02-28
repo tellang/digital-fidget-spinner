@@ -2,15 +2,19 @@
 
 class PuyoAI {
   constructor() {
-    // meatfighter + Ikeda et al. 기반 가중치 (색상 그루핑 강화)
+    // puyoai(niina) + meatfighter 기반 가중치
     this.weights = {
       chainPotential: 4.0,
       height: -0.8,
-      flatness: 0.3,
+      flatness: 2.0,       // puyoai: 평탄성 중시 (2.0→계단 구조 유도)
       colorGrouping: 2.5,
       deadZone: -12.0,
       edgePenalty: -0.5,
+      slope: 0.6,          // 경사 보너스 (연쇄 방향 유도)
     };
+    // puyoai 스타일 비선형 연결 점수 (그룹 크기별)
+    // 1개=고립 패널티, 2개=후보, 3개=최고(1개 추가=터짐), 4+=이미 터진 후 잔여
+    this.connectionScores = [0, -0.5, 0.7, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5];
   }
 
   findBestMove(board, pair, nextPair) {
@@ -180,6 +184,7 @@ class PuyoAI {
 
     const chainPotential = this._evaluateChainPotential(board);
     const colorGrouping = this._colorGrouping(board);
+    const slopeScore = this._slopeScore(heights);
 
     // 실제 연쇄 보너스 — 긴 연쇄를 비선형으로 선호
     const chainCount = chainResults.length;
@@ -200,6 +205,7 @@ class PuyoAI {
       this.weights.colorGrouping * colorGrouping +
       this.weights.deadZone * deadZoneCount +
       this.weights.edgePenalty * edgeCount +
+      this.weights.slope * slopeScore +
       chainBonus
     );
   }
@@ -238,10 +244,9 @@ class PuyoAI {
           }
         }
 
-        // 2-cell: 연쇄 후보 (1개 추가로 3-cell 가능)
-        if (cells.length === 2) potential += 0.5;
-        // 3-cell: 즉시 연쇄 가능 (1개만 추가하면 터짐)
-        if (cells.length === 3) potential += 1.0;
+        // puyoai 스타일 비선형 연결 점수
+        const idx = Math.min(cells.length, this.connectionScores.length - 1);
+        potential += this.connectionScores[idx];
       }
     }
 
@@ -262,6 +267,19 @@ class PuyoAI {
     }
 
     return count;
+  }
+
+  // 연쇄 방향 유도 — 한쪽에서 반대쪽으로 점진적 경사 선호
+  _slopeScore(heights) {
+    let incCount = 0;
+    let decCount = 0;
+    for (let i = 0; i < heights.length - 1; i++) {
+      const diff = heights[i + 1] - heights[i];
+      if (diff > 0) incCount++;
+      else if (diff < 0) decCount++;
+    }
+    // 좌→우 증가 또는 좌→우 감소 중 더 일관된 방향 선호
+    return Math.max(incCount, decCount);
   }
 
   _canPlacePair(board, row, col, rotation) {

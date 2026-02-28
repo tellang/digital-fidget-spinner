@@ -79,6 +79,35 @@ document.addEventListener("keydown", function(e) {
     });
   }
 
+  // 메뉴 위치 계산 (클릭 위치 기준, 화면 경계 자동 플립)
+  function openMenu(clientX, clientY) {
+    updateState();
+    menu.classList.remove("closing");
+    menu.style.visibility = "hidden";
+    menu.style.display = "block";
+    var mw = menu.offsetWidth;
+    var mh = menu.offsetHeight;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var flipX = clientX + mw + 4 > vw;
+    var flipY = clientY + mh + 4 > vh;
+    menu.style.transformOrigin =
+      (flipY ? "bottom" : "top") + " " + (flipX ? "right" : "left");
+    menu.style.left = (flipX ? Math.max(2, clientX - mw) : Math.min(clientX, vw - mw - 2)) + "px";
+    menu.style.top = (flipY ? Math.max(2, clientY - mh) : clientY) + "px";
+    menu.style.visibility = "";
+  }
+
+  // 메뉴 닫기 (퇴장 애니메이션)
+  function closeMenu() {
+    if (menu.style.display === "none") return;
+    menu.classList.add("closing");
+    setTimeout(function() {
+      menu.style.display = "none";
+      menu.classList.remove("closing");
+    }, 80);
+  }
+
   // 우클릭 → Tauri: 외부 설정 윈도우, 브라우저: 인라인 메뉴
   document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
@@ -86,24 +115,18 @@ document.addEventListener("keydown", function(e) {
       window.__TAURI__.core.invoke("open_settings_window", { x: e.screenX, y: e.screenY });
       return;
     }
-    // 브라우저 폴백: 인라인 메뉴
-    updateState();
-    menu.style.display = "block";
-    var x = Math.min(e.clientX, window.innerWidth - menu.offsetWidth - 2);
-    var y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 2);
-    menu.style.left = Math.max(2, x) + "px";
-    menu.style.top = Math.max(2, y) + "px";
+    openMenu(e.clientX, e.clientY);
   });
 
   // 좌클릭/터치 외부 → 메뉴 닫기 (브라우저 모드)
   document.addEventListener("mousedown", function(e) {
     if (e.button === 0 && !menu.contains(e.target) && !e.target.closest("#mobile-settings")) {
-      menu.style.display = "none";
+      closeMenu();
     }
   });
   document.addEventListener("touchstart", function(e) {
     if (!menu.contains(e.target) && !e.target.closest("#mobile-settings")) {
-      menu.style.display = "none";
+      closeMenu();
     }
   });
 
@@ -113,17 +136,13 @@ document.addEventListener("keydown", function(e) {
     mobileBtn.addEventListener("touchend", function(e) {
       e.preventDefault();
       e.stopPropagation();
-      updateState();
-      menu.style.display = "block";
-      menu.style.left = "2px";
-      menu.style.top = "2px";
+      var rect = mobileBtn.getBoundingClientRect();
+      openMenu(rect.left, rect.bottom + 4);
     });
     mobileBtn.addEventListener("click", function(e) {
       e.stopPropagation();
-      updateState();
-      menu.style.display = "block";
-      menu.style.left = "2px";
-      menu.style.top = "2px";
+      var rect = mobileBtn.getBoundingClientRect();
+      openMenu(rect.left, rect.bottom + 4);
     });
   }
 
