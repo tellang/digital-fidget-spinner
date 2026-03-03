@@ -63,14 +63,19 @@ jobs:
           cp src-tauri/target/release/chatris.exe "CHATRIS-portable.exe"
           gh release upload "$TAG" "CHATRIS-portable.exe" --clobber
 
-          # updater용 nsis.zip + sig 업로드
-          NSIS_ZIP=$(find src-tauri/target/release/bundle/nsis -name "*.nsis.zip" 2>/dev/null | head -1)
-          NSIS_SIG=$(find src-tauri/target/release/bundle/nsis -name "*.nsis.zip.sig" 2>/dev/null | head -1)
+          # 디버그: nsis 디렉토리 내용 확인
+          echo "=== nsis bundle directory ==="
+          ls -la src-tauri/target/release/bundle/nsis/ || echo "nsis dir not found"
 
-          echo "NSIS_ZIP=$NSIS_ZIP"
-          echo "NSIS_SIG=$NSIS_SIG"
+          # updater용 nsis.zip + sig (파일명 직접 구성)
+          NSIS_DIR="src-tauri/target/release/bundle/nsis"
+          NSIS_ZIP="${NSIS_DIR}/CHATRIS_${VERSION}_x64-setup.nsis.zip"
+          NSIS_SIG="${NSIS_ZIP}.sig"
 
-          if [ -n "$NSIS_ZIP" ] && [ -n "$NSIS_SIG" ]; then
+          echo "NSIS_ZIP=$NSIS_ZIP (exists: $(test -f "$NSIS_ZIP" && echo yes || echo no))"
+          echo "NSIS_SIG=$NSIS_SIG (exists: $(test -f "$NSIS_SIG" && echo yes || echo no))"
+
+          if [ -f "$NSIS_ZIP" ] && [ -f "$NSIS_SIG" ]; then
             NSIS_NAME=$(basename "$NSIS_ZIP")
             gh release upload "$TAG" "$NSIS_ZIP" --clobber
             gh release upload "$TAG" "$NSIS_SIG" --clobber
