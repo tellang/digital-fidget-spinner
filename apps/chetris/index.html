@@ -7,6 +7,25 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* 디자인 토큰 — 타이포그래피 스케일 + 스페이싱 그리드 + 이징 */
+    :root {
+      --fs-caption: 10px;
+      --fs-overline: 10px;
+      --fs-body: 12px;
+      --fs-subtitle: 13px;
+      --fs-title: 14px;
+      --sp-1: 4px;
+      --sp-2: 8px;
+      --sp-3: 12px;
+      --sp-4: 16px;
+      --font-ui: system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", sans-serif;
+      --font-brand: "Cascadia Code", "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-fast: 0.15s;
+      --dur-normal: 0.25s;
+      --dur-slow: 0.4s;
+    }
+
     html, body {
       background: #0a0a1a;
       display: flex;
@@ -239,7 +258,17 @@
     }
 
     /* === 설정 패널 (외부 윈도우용 — #settings 해시 라우트) === */
-    body.settings-mode { background: #0d0d1a; }
+    body.settings-mode {
+      background: var(--theme-bg, #0d0d1a); transition: background 0.5s ease;
+      align-items: stretch; justify-content: stretch;
+    }
+    @keyframes sp-slide-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    body.settings-mode #settings-panel {
+      animation: sp-slide-in 0.2s ease-out both;
+    }
     body.settings-mode #game-container,
     body.settings-mode #update-toast,
     body.settings-mode #ctx-menu { display: none !important; }
@@ -247,80 +276,113 @@
     #settings-panel {
       display: none;
       padding: 0;
-      font-family: 'Segoe UI', 'Courier New', monospace;
-      font-size: 13px;
+      font-family: var(--font-ui);
+      font-size: var(--fs-body);
       color: #e0e0e0;
-      overflow-y: auto;
+      overflow: hidden;
       height: 100vh;
       scrollbar-width: none;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
     }
     #settings-panel::-webkit-scrollbar { display: none; }
-    body.settings-mode #settings-panel { display: block; }
+    body.settings-mode #settings-panel { display: flex; width: 100%; }
 
     .sp-titlebar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 14px;
-      background: rgba(0,0,0,0.3);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: var(--sp-2) var(--sp-3);
+      background: rgba(13,13,26,0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       -webkit-app-region: drag;
+      flex-shrink: 0;
+      z-index: 10;
+      transition: border-color var(--dur-slow) ease;
     }
     .sp-titlebar h1 {
-      font-size: 13px; font-weight: 600;
+      font-size: var(--fs-title); font-weight: 700;
       color: var(--theme-border, #00fff2);
-      letter-spacing: 2px;
-      font-family: 'Courier New', monospace;
+      letter-spacing: 3px;
+      font-family: var(--font-brand);
+      line-height: 1.2;
+      transition: color var(--dur-slow) ease;
     }
     .sp-close {
       -webkit-app-region: no-drag;
-      width: 22px; height: 22px;
+      width: 24px; height: 24px;
       border: 1px solid rgba(255,255,255,0.15);
       background: none; color: #666;
       border-radius: 4px; cursor: pointer;
-      font-size: 13px; display: flex;
+      font-size: 14px; display: flex;
       align-items: center; justify-content: center;
-      transition: all 0.15s;
+      transition: all var(--dur-fast);
     }
     .sp-close:hover { background: rgba(255,0,64,0.15); color: #ff0040; border-color: rgba(255,0,64,0.4); }
 
-    .sp-content { padding: 12px 14px 14px; }
-    .sp-section { margin-bottom: 14px; }
+    .sp-content { padding: var(--sp-3); flex: 1; overflow-y: auto; scrollbar-width: none; }
+    .sp-content::-webkit-scrollbar { display: none; }
+    .sp-section { margin-bottom: var(--sp-3); }
     .sp-title {
-      font-size: 9px; color: rgba(255,255,255,0.3);
-      text-transform: uppercase; letter-spacing: 2px;
-      margin-bottom: 8px; font-family: 'Courier New', monospace;
+      font-size: var(--fs-overline); color: rgba(255,255,255,0.45);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: var(--sp-2); font-family: var(--font-ui); font-weight: 600;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
     }
+    .sp-title::after {
+      content: '▾'; font-size: 8px; transition: transform var(--dur-normal) ease;
+    }
+    .sp-section.collapsed .sp-title::after { transform: rotate(-90deg); }
+    .sp-section-body {
+      overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--dur-normal) var(--ease-out);
+      max-height: 500px; opacity: 1;
+    }
+    .sp-section.collapsed .sp-section-body { max-height: 0; opacity: 0; }
 
-    .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
     .sp-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 7px 10px;
+      display: flex; align-items: center;
+      padding: var(--sp-2) var(--sp-3);
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.06);
       border-radius: 6px; cursor: pointer;
-      color: #999; font-size: 12px; transition: all 0.15s;
+      color: #999; font-size: var(--fs-body); line-height: 1.4;
+      position: relative; overflow: hidden;
+      transition: background var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-slow) var(--ease-out),
+                  color var(--dur-slow) var(--ease-out),
+                  transform var(--dur-fast) var(--ease-out);
     }
     .sp-btn:hover { background: rgba(255,255,255,0.05); }
+    .sp-btn:active { transform: scale(0.97); }
     .sp-btn.active {
       border-color: var(--theme-border, #00fff2);
       background: rgba(0,255,242,0.05); color: #fff;
     }
-    .sp-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      flex-shrink: 0; background: currentColor; opacity: 0.6;
+    .sp-ripple {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      background: var(--theme-border, #00fff2); opacity: 0.25;
+      transform: scale(0); animation: sp-ripple-out 0.5s ease-out forwards;
     }
-    .sp-btn.active .sp-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+    @keyframes sp-ripple-out { to { transform: scale(4); opacity: 0; } }
 
-    .sp-mode { display: flex; gap: 5px; }
+    .sp-mode { display: flex; gap: var(--sp-2); }
     .sp-mode-btn {
-      flex: 1; padding: 8px; text-align: center;
+      flex: 1; padding: var(--sp-2); text-align: center;
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.06);
       border-radius: 6px; cursor: pointer;
-      color: #999; font-size: 12px; transition: all 0.15s;
+      color: #999; font-size: var(--fs-body); min-height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--dur-fast) var(--ease-out),
+                  transform var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-normal) var(--ease-out),
+                  color var(--dur-normal) var(--ease-out);
     }
     .sp-mode-btn:hover { background: rgba(255,255,255,0.05); }
+    .sp-mode-btn:active { transform: scale(0.97); }
     .sp-mode-btn.active {
       border-color: var(--theme-border, #00fff2);
       background: rgba(0,255,242,0.05); color: #fff;
@@ -328,20 +390,27 @@
 
     .sp-toggle-row {
       display: flex; align-items: center;
-      justify-content: space-between; padding: 5px 0;
+      justify-content: space-between; padding: 6px var(--sp-1);
+      cursor: pointer; border-radius: 4px; min-height: 32px;
+      transition: background var(--dur-fast);
     }
-    .sp-toggle-label { color: #aaa; font-size: 12px; }
+    .sp-toggle-row:hover { background: rgba(255,255,255,0.03); }
+    .sp-toggle-label { color: #aaa; font-size: var(--fs-body); transition: color var(--dur-slow) ease; }
+    .sp-toggle-row.on .sp-toggle-label { color: var(--theme-border, #00fff2); }
     .sp-switch {
-      position: relative; width: 34px; height: 18px;
+      position: relative; width: 36px; height: 20px;
       background: rgba(255,255,255,0.08);
-      border-radius: 9px; cursor: pointer;
-      transition: background 0.2s; flex-shrink: 0;
+      border-radius: 10px; cursor: pointer;
+      transition: background var(--dur-normal); flex-shrink: 0;
     }
     .sp-switch.on { background: rgba(0,255,242,0.35); }
     .sp-knob {
       position: absolute; top: 2px; left: 2px;
-      width: 14px; height: 14px;
-      background: #666; border-radius: 50%; transition: all 0.2s;
+      width: 16px; height: 16px;
+      background: #666; border-radius: 50%;
+      transition: left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background var(--dur-slow) var(--ease-out),
+                  box-shadow var(--dur-slow) var(--ease-out);
     }
     .sp-switch.on .sp-knob {
       left: 18px;
@@ -349,30 +418,89 @@
       box-shadow: 0 0 6px var(--theme-border, #00fff2);
     }
 
-    .sp-pos { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sp-pos { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-1); }
     .sp-pos-btn {
-      padding: 8px; text-align: center; font-size: 16px;
+      padding: var(--sp-2); text-align: center; font-size: 14px;
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 6px; cursor: pointer;
-      color: #888; transition: all 0.15s;
+      border-radius: 6px; cursor: pointer; min-height: 36px;
+      color: #888; display: flex; align-items: center; justify-content: center;
+      transition: background var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-normal) var(--ease-out),
+                  color var(--dur-normal) var(--ease-out),
+                  transform var(--dur-fast) var(--ease-out);
     }
     .sp-pos-btn:hover { background: rgba(0,255,242,0.06); border-color: rgba(0,255,242,0.25); color: #ccc; }
+    .sp-pos-btn.active {
+      border-color: var(--theme-border, #00fff2); color: var(--theme-border, #00fff2);
+      background: rgba(0,255,242,0.06);
+    }
+    .sp-pos-btn:active { transform: scale(0.92); }
 
-    .sp-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 10px 0; }
+    .sp-content::after { display: none; }
+    .sp-footer {
+      flex-shrink: 0;
+      padding: var(--sp-2) var(--sp-3);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      background: rgba(13,13,26,0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .sp-sep { height: 1px; background: rgba(255,255,255,0.05); margin: var(--sp-2) 0; }
     .sp-quit {
-      width: 100%; padding: 8px;
+      width: 100%; padding: var(--sp-2);
       background: rgba(255,0,64,0.06);
       border: 1px solid rgba(255,0,64,0.15);
       border-radius: 6px; color: #ff0040;
-      cursor: pointer; font-size: 12px; font-family: inherit; transition: all 0.15s;
+      cursor: pointer; font-size: var(--fs-body); font-family: inherit;
+      transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
     }
     .sp-quit:hover { background: rgba(255,0,64,0.12); border-color: rgba(255,0,64,0.4); }
+    .sp-quit:active { transform: scale(0.98); }
     .sp-ver {
-      text-align: center; font-size: 9px;
-      color: rgba(255,255,255,0.15); margin-top: 10px;
-      font-family: 'Courier New', monospace; letter-spacing: 1px;
+      text-align: center; font-size: var(--fs-caption);
+      color: rgba(255,255,255,0.25); margin-top: var(--sp-2);
+      font-family: var(--font-brand); letter-spacing: 0.5px;
     }
+
+    /* === 밝은 테마 대응 (자동 감지) === */
+    .theme-light #settings-panel { color: var(--theme-text, #333); }
+    .theme-light .sp-title { color: rgba(0,0,0,0.5); }
+    .theme-light .sp-title::after { color: rgba(0,0,0,0.5); }
+    .theme-light .sp-toggle-label { color: var(--theme-text, #666); }
+    .theme-light .sp-toggle-row.on .sp-toggle-label { color: var(--theme-border, #333); }
+    .theme-light .sp-btn {
+      background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: var(--theme-text, #555);
+    }
+    .theme-light .sp-btn:hover { background: rgba(0,0,0,0.06); }
+    .theme-light .sp-btn.active {
+      border-color: var(--theme-border); background: rgba(0,0,0,0.05); color: var(--theme-text, #333);
+    }
+    .theme-light .sp-mode-btn {
+      background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: var(--theme-text, #555);
+    }
+    .theme-light .sp-mode-btn:hover { background: rgba(0,0,0,0.06); }
+    .theme-light .sp-mode-btn.active {
+      border-color: var(--theme-border); background: rgba(0,0,0,0.05); color: var(--theme-text, #333);
+    }
+    .theme-light .sp-switch { background: rgba(0,0,0,0.1); }
+    .theme-light .sp-switch.on { background: rgba(0,0,0,0.15); }
+    .theme-light .sp-switch.on .sp-knob { background: var(--theme-border); }
+    .theme-light .sp-knob { background: rgba(0,0,0,0.25); }
+    .theme-light .sp-pos-btn {
+      background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: var(--theme-text, #666);
+    }
+    .theme-light .sp-pos-btn:hover { background: rgba(0,0,0,0.06); border-color: var(--theme-border); }
+    .theme-light .sp-pos-btn.active { border-color: var(--theme-border); color: var(--theme-border); }
+    .theme-light .sp-titlebar { background: rgba(255,255,255,0.6); backdrop-filter: blur(12px); border-bottom-color: rgba(0,0,0,0.08); }
+    .theme-light .sp-footer { background: rgba(255,255,255,0.6); backdrop-filter: blur(12px); border-top-color: rgba(0,0,0,0.08); }
+    .theme-light .sp-close { border-color: rgba(0,0,0,0.15); color: rgba(0,0,0,0.3); }
+    .theme-light .sp-close:hover { background: rgba(255,0,64,0.1); color: #ff0040; }
+    .theme-light .sp-quit { background: rgba(255,0,64,0.08); border-color: rgba(255,0,64,0.2); }
+    .theme-light .sp-ver { color: rgba(0,0,0,0.3); }
+    .theme-light .sp-content::after { background: linear-gradient(transparent, var(--theme-bg, #f8f6f0)); }
+    .theme-light .sp-sep { background: rgba(0,0,0,0.06); }
+    .theme-light .sp-section.collapsed .sp-section-body { max-height: 0; opacity: 0; }
 
     /* 업데이트 토스트 (토스 스타일: 비침투적, 자동 사라짐) */
     #update-toast {
@@ -481,17 +609,22 @@
     <div class="sp-content">
       <div class="sp-section">
         <div class="sp-title">Theme</div>
+        <div class="sp-section-body">
         <div class="sp-grid" id="sp-themes"></div>
+        </div>
       </div>
       <div class="sp-section">
         <div class="sp-title">Mode</div>
+        <div class="sp-section-body">
         <div class="sp-mode">
           <div class="sp-mode-btn" data-mode="tetris">테트리스</div>
           <div class="sp-mode-btn" data-mode="puyo">뿌요뿌요</div>
         </div>
+        </div>
       </div>
       <div class="sp-section">
         <div class="sp-title">Options</div>
+        <div class="sp-section-body">
         <div class="sp-toggle-row"><span class="sp-toggle-label">파티클</span><div class="sp-switch" data-key="particles"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">진동</span><div class="sp-switch" data-key="shake"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">자동 페이드</span><div class="sp-switch" data-key="autoFade"><div class="sp-knob"></div></div></div>
@@ -499,17 +632,21 @@
         <div class="sp-toggle-row"><span class="sp-toggle-label">자동 테마</span><div class="sp-switch" data-key="autoTheme"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">트레이 최소화</span><div class="sp-switch" data-key="minimizeToTray"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">자동 업데이트</span><div class="sp-switch" data-key="autoUpdate"><div class="sp-knob"></div></div></div>
+        </div>
       </div>
       <div class="sp-section">
         <div class="sp-title">Position</div>
+        <div class="sp-section-body">
         <div class="sp-pos">
           <div class="sp-pos-btn" data-pos="tl">↖</div>
           <div class="sp-pos-btn" data-pos="tr">↗</div>
           <div class="sp-pos-btn" data-pos="bl">↙</div>
           <div class="sp-pos-btn" data-pos="br">↘</div>
         </div>
+        </div>
       </div>
-      <div class="sp-sep"></div>
+    </div>
+    <div class="sp-footer">
       <button class="sp-quit" id="sp-quit">종료</button>
       <div class="sp-ver" id="sp-ver">CHATRIS</div>
     </div>

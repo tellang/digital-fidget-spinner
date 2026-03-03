@@ -47,12 +47,11 @@
 
 ## 위젯
 
-| 위젯 | 설명 | 상태 |
-|------|------|:----:|
-| [**CHATRIS**](apps/chetris/) | 타이핑하면 빨라지는 AI 테트리스 | `기본값` |
-| *추가 예정* | | |
+| 위젯 | 설명 | 게임 모드 | 상태 |
+|------|------|:----:|:----:|
+| [**CHATRIS**](apps/chetris/) | 타이핑하면 빨라지는 AI 게임 | 테트리스 + 뿌요뿌요 | `기본값` |
 
-> 설정에서 위젯을 전환할 수 있습니다.
+> 설정 패널에서 테마(10종), 게임 모드(2종), 각종 옵션을 실시간으로 전환할 수 있습니다.
 
 ---
 
@@ -105,14 +104,22 @@ npm run tauri:build      # 프로덕션
 ```
 digital-fidget-spinner/
 ├── apps/
-│   └── chetris/              # AI 테트리스 위젯
-│       ├── index.html        # 메인 진입점
-│       ├── js/               # 프론트엔드 모듈
-│       ├── src-tauri/        # Rust 백엔드
+│   └── chetris/                # AI 테트리스 위젯
+│       ├── index.html          # 메인 게임 윈도우
+│       ├── settings.html       # 별도 설정 패널
+│       ├── js/                 # 프론트엔드 모듈 (13개)
+│       │   ├── app.js          # 설정 패널 컨트롤러
+│       │   ├── themes.js       # 10종 테마
+│       │   ├── board.js        # 테트리스 보드
+│       │   ├── ai.js           # 테트리스 AI
+│       │   ├── puyo-board.js   # 뿌요뿌요 보드
+│       │   ├── puyo-ai.js      # 뿌요뿌요 AI
+│       │   └── 기타...         # 렌더러, 이펙트, 입력 등
+│       ├── src-tauri/          # Rust 백엔드 (Tauri v2)
 │       └── package.json
 ├── .github/workflows/
-│   └── release.yml           # CI/CD
-├── README.md
+│   └── release.yml             # CI/CD (자동 빌드 & 릴리스)
+├── README.md                   # 이 파일
 └── .gitignore
 ```
 

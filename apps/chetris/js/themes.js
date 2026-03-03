@@ -70,12 +70,30 @@ class ThemeRegistry {
     root.style.setProperty("--theme-glow", t.css.borderGlow);
     root.style.setProperty("--theme-boost-glow", t.css.boostGlow);
     root.style.setProperty("--theme-bg", t.bg);
+    root.style.setProperty("--theme-text", t.textColor);
+
+    // 밝기 감지: 밝은 테마면 어두운 오버레이 사용
+    const lum = ThemeRegistry.#luminance(t.bg);
+    const isLight = lum > 0.4;
+    document.body.classList.toggle("theme-light", isLight);
+    document.body.classList.toggle("theme-dark", !isLight);
 
     const scanline = document.getElementById("scanline");
     const vignette = document.getElementById("vignette");
-    // 스무스 전환: display 대신 opacity (CSS transition 연동)
     if (scanline) scanline.style.opacity = t.effects.scanline ? "1" : "0";
     if (vignette) vignette.style.opacity = t.effects.vignette ? "1" : "0";
+  }
+
+  // bg 색상에서 상대 밝기 계산
+  static #luminance(color) {
+    const el = document.createElement("div");
+    el.style.color = color;
+    document.body.appendChild(el);
+    const rgb = getComputedStyle(el).color.match(/\d+/g);
+    el.remove();
+    if (!rgb) return 0;
+    const [r, g, b] = rgb.map(c => { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 
   // 기본값 — 테마에 빠진 필드를 채움

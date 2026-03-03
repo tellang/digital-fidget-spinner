@@ -81,8 +81,15 @@ class Game {
       settings.onChange((key, value) => {
         if (key === "theme") themes.apply(value);
         if (key === "gameMode") {
-          this.gameMode = value || "tetris";
-          this._restart();
+          // 페이드 아웃 → 모드 전환 → 페이드 인
+          this.container.style.transition = "opacity 0.3s ease";
+          this.container.style.opacity = "0";
+          setTimeout(() => {
+            this.gameMode = value || "tetris";
+            this._restart();
+            this.container.style.opacity = "1";
+            setTimeout(() => { this.container.style.transition = ""; }, 300);
+          }, 300);
         }
       });
     });

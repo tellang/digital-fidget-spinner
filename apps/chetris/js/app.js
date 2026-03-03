@@ -246,14 +246,27 @@ document.addEventListener("keydown", function(e) {
       return { id: id, name: t.name, color: t.borderColor };
     });
 
-    // 테마 그리드 빌드
+    // 테마 그리드 빌드 (#2: 2색 도트 미리보기, #4: ripple)
     var grid = document.getElementById("sp-themes");
     themeList.forEach(function(t) {
       var btn = document.createElement("div");
       btn.className = "sp-btn";
       btn.dataset.theme = t.id;
-      btn.innerHTML = '<span class="sp-dot" style="color:' + t.color + '"></span>' + t.name;
-      btn.addEventListener("click", function() {
+      var full = themes.get(t.id);
+      var c2 = full.boostBorderColor || t.color;
+      btn.textContent = t.name;
+      btn.addEventListener("click", function(e) {
+        // #4: ripple 이펙트
+        var r = document.createElement("span");
+        r.className = "sp-ripple";
+        var rect = btn.getBoundingClientRect();
+        var size = Math.max(rect.width, rect.height) * 2;
+        r.style.width = r.style.height = size + "px";
+        r.style.left = (e.clientX - rect.left - size / 2) + "px";
+        r.style.top = (e.clientY - rect.top - size / 2) + "px";
+        btn.appendChild(r);
+        setTimeout(function() { r.remove(); }, 500);
+        themes.apply(t.id);
         settings.set("theme", t.id);
         notifyMain("theme", t.id);
         spUpdate();
@@ -270,9 +283,11 @@ document.addEventListener("keydown", function(e) {
       });
     });
 
-    // 토글
-    document.querySelectorAll(".sp-switch").forEach(function(sw) {
-      sw.addEventListener("click", function() {
+    // #1: 토글 행 전체 클릭
+    document.querySelectorAll(".sp-toggle-row").forEach(function(row) {
+      row.addEventListener("click", function() {
+        var sw = row.querySelector(".sp-switch");
+        if (!sw) return;
         var key = sw.dataset.key;
         var val = !settings.get(key);
         settings.set(key, val);
@@ -284,12 +299,22 @@ document.addEventListener("keydown", function(e) {
       });
     });
 
-    // 위치
+    // #3: 섹션 접기/펼치기
+    document.querySelectorAll(".sp-section .sp-title").forEach(function(title) {
+      title.addEventListener("click", function() {
+        title.parentElement.classList.toggle("collapsed");
+      });
+    });
+
+    // #6: 위치 (+ 현재 위치 하이라이트)
+    var currentPos = "br"; // 기본값
     document.querySelectorAll(".sp-pos-btn").forEach(function(btn) {
       btn.addEventListener("click", function() {
+        currentPos = btn.dataset.pos;
         if (window.__TAURI__) {
           window.__TAURI__.core.invoke("position_window_cmd", { position: btn.dataset.pos });
         }
+        spUpdatePos();
       });
     });
 
@@ -300,10 +325,24 @@ document.addEventListener("keydown", function(e) {
       }
     });
 
-    // 종료
-    document.getElementById("sp-quit").addEventListener("click", function() {
-      if (window.__TAURI__) {
-        window.__TAURI__.core.invoke("exit_app");
+    // #5: 종료 2단계 확인
+    var quitBtn = document.getElementById("sp-quit");
+    var quitArmed = false, quitTimer = null;
+    quitBtn.addEventListener("click", function() {
+      if (!quitArmed) {
+        quitArmed = true;
+        quitBtn.textContent = "정말 종료?";
+        quitBtn.style.background = "rgba(255,0,64,0.25)";
+        quitTimer = setTimeout(function() {
+          quitArmed = false;
+          quitBtn.textContent = "종료";
+          quitBtn.style.background = "";
+        }, 2000);
+      } else {
+        clearTimeout(quitTimer);
+        if (window.__TAURI__) {
+          window.__TAURI__.core.invoke("exit_app");
+        }
       }
     });
 
@@ -329,12 +368,20 @@ document.addEventListener("keydown", function(e) {
     });
 
     spUpdate();
+    spUpdatePos();
   });
 
   function notifyMain(key, value) {
     if (window.__TAURI__) {
       window.__TAURI__.event.emit("settings-changed", { key: key, value: value });
     }
+  }
+
+  // #6: 위치 하이라이트
+  function spUpdatePos() {
+    document.querySelectorAll(".sp-pos-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.pos === currentPos);
+    });
   }
 
   function spUpdate() {
@@ -348,7 +395,13 @@ document.addEventListener("keydown", function(e) {
     });
     // 토글
     document.querySelectorAll(".sp-switch").forEach(function(sw) {
-      sw.classList.toggle("on", !!settings.get(sw.dataset.key));
+      var on = !!settings.get(sw.dataset.key);
+      sw.classList.toggle("on", on);
+    });
+    // #1: 토글 행 상태 반영
+    document.querySelectorAll(".sp-toggle-row").forEach(function(row) {
+      var sw = row.querySelector(".sp-switch");
+      if (sw) row.classList.toggle("on", sw.classList.contains("on"));
     });
   }
 })();

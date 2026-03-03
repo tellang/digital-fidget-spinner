@@ -13,7 +13,7 @@
 
 **타이핑하면 빨라지는 AI 테트리스**
 
-[![Version](https://img.shields.io/badge/version-3.1.0-00fff2?style=flat-square)](https://github.com/tellang/digital-fidget-spinner/releases)
+[![Version](https://img.shields.io/badge/version-4.5.0-00fff2?style=flat-square)](https://github.com/tellang/digital-fidget-spinner/releases)
 [![License](https://img.shields.io/badge/license-MIT-b026ff?style=flat-square)](../../LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-39ff14?style=flat-square)](#)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-ff6600?style=flat-square)](https://v2.tauri.app)
@@ -49,7 +49,7 @@ AI가 플레이하고, 당신의 타이핑이 부스트합니다.<br>
 
 ### AI 자동 플레이
 4-feature 휴리스틱 + T-스핀 + SRS 월킥.<br>
-동점 배치는 랜덤 선택 — 매번 다른 패턴.
+테트리스 + **뿌요뿌요** 듀얼 모드 지원.
 
 </td>
 <td width="50%">
@@ -63,16 +63,16 @@ AI가 플레이하고, 당신의 타이핑이 부스트합니다.<br>
 <tr>
 <td>
 
-### 6종 테마
-Cyberpunk / Game Boy / Pastel / Matrix / Glass / Retro<br>
-시스템 트레이에서 실시간 전환.
+### 10종 테마
+Vaporwave / Abyss / Cloud / Eclipse 등 추가.<br>
+시스템 밝기에 따른 **자동 테마 감지**.
 
 </td>
 <td>
 
-### 설정 시스템
-파티클, 진동, 자동 페이드, 시작프로그램 등록.<br>
-트레이 메뉴에서 토글. 자동 저장.
+### 독립 설정 패널
+별도 윈도우에서 테마, 모드, 옵션 실시간 변경.<br>
+**4코너 위치 프리셋** 및 자동 업데이트 지원.
 
 </td>
 </tr>
@@ -82,13 +82,13 @@ Cyberpunk / Game Boy / Pastel / Matrix / Glass / Retro<br>
 
 ## 테마
 
-| Cyberpunk Neon | Game Boy | Pastel Dream |
-|:-:|:-:|:-:|
-| 네온 글로우 + CRT + 비네트 | 4색 그린 미니멀 | 파스텔 + 둥근 블록 |
+| Cyberpunk Neon | Game Boy | Pastel Dream | Matrix | Glassmorphism |
+|:-:|:-:|:-:|:-:|:-:|
+| 네온 글로우 + CRT | 4색 그린 미니멀 | 파스텔 + 둥근 블록 | 그린 모노크롬 | 반투명 프로스트 |
 
-| Matrix | Glassmorphism | Retro Arcade |
-|:-:|:-:|:-:|
-| 그린 모노크롬 터미널 | 반투명 프로스트 | 클래식 테트리스 |
+| Retro Arcade | Vaporwave Sunset | Connected Abyss | Cloud Dancer | Solar Eclipse |
+|:-:|:-:|:-:|:-:|:-:|
+| 클래식 테트리스 | 80s 핑크 + 그리드 | 심해 네온 + 글로우 | 밝은 미니멀 파스텔 | 블랙 & 오렌지 대비 |
 
 ---
 
@@ -110,10 +110,10 @@ Cyberpunk / Game Boy / Pastel / Matrix / Glass / Retro<br>
 | 가속 | 아무 앱에서 타이핑 |
 | 즉시 드롭 | 빠른 연타 |
 | 이동 | 위젯 드래그 |
-| 위치 프리셋 | 트레이 / 우클릭 → 위치 |
-| 테마 | 트레이 / 우클릭 → 테마 |
-| 설정 | 트레이 / 우클릭 → 설정 |
-| 종료 | `ESC` 또는 트레이 → 종료 |
+| 위치 프리셋 | 설정 → 위치 (↖ ↗ ↙ ↘) |
+| 설정 패널 | 우클릭 → 설정 (별도 창) |
+| 테마/모드 | 설정 패널에서 전환 |
+| 종료 | `ESC` 또는 설정 → 종료 |
 
 ---
 
@@ -157,6 +157,7 @@ npm run tauri:build      # 프로덕션 → src-tauri/target/release/
 <summary><strong>AI 동작 원리</strong></summary>
 <br>
 
+### 테트리스
 매 피스마다 가능한 모든 (회전 x 위치) 조합을 시뮬레이션:
 
 ```
@@ -168,6 +169,11 @@ npm run tauri:build      # 프로덕션 → src-tauri/target/release/
      + T-스핀     x (+2.00)
 ```
 
+### 뿌요뿌요
+2-ahead 연쇄 탐색 + DFS 기반 최적 배치:
+- 현재 피스와 다음 피스 조합으로 최대 연쇄 개수 계산
+- 보너스 스코어링: 연쇄 수 + 동시 제거 블록 수
+
 동점이면 랜덤 선택 — 매번 다른 게임 전개.
 
 </details>
@@ -178,24 +184,26 @@ npm run tauri:build      # 프로덕션 → src-tauri/target/release/
 
 ```
 chetris/
-├── index.html              # 투명 배경, CRT 효과
+├── index.html              # 메인 게임 윈도우 (투명 배경, CRT 효과)
+├── settings.html           # 별도 설정 윈도우 UI
 ├── js/
-│   ├── themes.js           # ThemeRegistry (6종)
-│   ├── settings.js         # 설정 영속화
-│   ├── constants.js        # SRS 피스/월킥 데이터
-│   ├── board.js            # 보드 + T-스핀 검출
+│   ├── app.js              # 설정 패널 컨트롤러 + 타이핑 이벤트
+│   ├── themes.js           # ThemeRegistry (10종 테마)
+│   ├── settings.js         # 설정 영속화 (Tauri invoke)
+│   ├── constants.js        # SRS 피스/월킥 데이터 (테트리스)
+│   ├── board.js            # 테트리스 보드 + T-스핀 검출
 │   ├── ai.js               # 4-feature 테트리스 AI
-│   ├── puyo-ai.js          # 뿌요 AI
-│   ├── puyo-board.js       # 뿌요 보드
-│   ├── puyo-constants.js   # 뿌요 상수
-│   ├── effects.js          # 파티클 + 흔들림
-│   ├── input.js            # 글로벌 입력 + 채팅 버블
-│   ├── renderer.js         # Canvas 네온 렌더러
-│   └── game.js             # 메인 루프
+│   ├── puyo-ai.js          # 뿌요뿌요 AI (2-ahead DFS)
+│   ├── puyo-board.js       # 뿌요뿌요 보드 + 연쇄 판정
+│   ├── puyo-constants.js   # 뿌요뿌요 상수
+│   ├── effects.js          # 파티클 + 흔들림 이펙트
+│   ├── input.js            # 글로벌 키훅 + 채팅 버블
+│   ├── renderer.js         # Canvas 2D 네온 렌더러
+│   └── game.js             # 메인 게임 루프
 ├── src-tauri/
-│   ├── Cargo.toml          # tauri, rdev, updater
-│   ├── tauri.conf.json     # 윈도우 + 업데이터
-│   └── src/lib.rs          # 트레이, 키훅, 설정, 업데이트
+│   ├── Cargo.toml          # 의존성 (tauri, rdev, updater)
+│   ├── tauri.conf.json     # 윈도우 설정 + 업데이터
+│   └── src/lib.rs          # 트레이, 글로벌 키훅, 설정, 자동 업데이트
 └── scripts/
     └── copy-dist.js        # 빌드 스크립트
 ```
@@ -207,16 +215,7 @@ chetris/
 <br>
 
 GitHub Releases 기반 자동 업데이트:
-
-```bash
-# 1. 서명 키 생성
-npx tauri signer generate -w ~/.tauri/chatris.key
-
-# 2. tauri.conf.json → pubkey, endpoints 설정
-# 3. GitHub Secrets → TAURI_SIGNING_PRIVATE_KEY, PASSWORD
-# 4. 태그 push → 자동 빌드/릴리스
-git tag v3.1.0 && git push origin v3.1.0
-```
+토스트 알림 스타일로 비침투적 업데이트를 지원합니다.
 
 </details>
 
@@ -226,6 +225,11 @@ git tag v3.1.0 && git push origin v3.1.0
 
 | | 내용 |
 |---|------|
+| **v4.4** | 설정 패널 UI 최적화, 토글 레이아웃 개선 |
+| **v4.3** | 신규 테마 2종 (Cloud Dancer, Solar Eclipse) + 위치 프리셋 |
+| **v4.2** | 설정 패널 윈도우 분리, 섹션 접기/펼치기, 토스트 알림 |
+| **v4.1** | 신규 테마 2종 (Vaporwave Sunset, Connected Abyss) |
+| **v4.0** | 뿌요뿌요 모드 추가, 밝기 기반 자동 테마 감지 |
 | **v3.1** | 업데이트 모달 UI + 우클릭 메뉴 + 버전 표시 |
 | **v3.0** | 설정 시스템 + 자동 페이드 + 시작 등록 + 자동 업데이트 |
 | **v2.0** | ThemeRegistry (6종) + 트레이 테마 전환 |
