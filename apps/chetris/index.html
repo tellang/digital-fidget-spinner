@@ -25,7 +25,7 @@
       height: 100%;
       border: 2px solid var(--theme-border, #00fff2);
       border-radius: 8px;
-      cursor: move;
+      cursor: default;
       box-shadow: var(--theme-glow, 0 0 20px rgba(0,255,242,0.3));
       transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
@@ -454,6 +454,8 @@
     <div class="ctx-item ctx-toggle" data-key="autoFade"><span class="ctx-check"></span>자동 페이드</div>
     <div class="ctx-item ctx-toggle" data-key="autoStart"><span class="ctx-check"></span>시작프로그램</div>
     <div class="ctx-item ctx-toggle" data-key="autoTheme"><span class="ctx-check"></span>자동 테마</div>
+    <div class="ctx-item ctx-toggle" data-key="minimizeToTray"><span class="ctx-check"></span>트레이 최소화</div>
+    <div class="ctx-item ctx-toggle" data-key="autoUpdate"><span class="ctx-check"></span>자동 업데이트</div>
     <div class="ctx-sep"></div>
     <div class="ctx-label">POSITION</div>
     <div class="ctx-pos-row">
@@ -495,6 +497,8 @@
         <div class="sp-toggle-row"><span class="sp-toggle-label">자동 페이드</span><div class="sp-switch" data-key="autoFade"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">시작프로그램</span><div class="sp-switch" data-key="autoStart"><div class="sp-knob"></div></div></div>
         <div class="sp-toggle-row"><span class="sp-toggle-label">자동 테마</span><div class="sp-switch" data-key="autoTheme"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">트레이 최소화</span><div class="sp-switch" data-key="minimizeToTray"><div class="sp-knob"></div></div></div>
+        <div class="sp-toggle-row"><span class="sp-toggle-label">자동 업데이트</span><div class="sp-switch" data-key="autoUpdate"><div class="sp-knob"></div></div></div>
       </div>
       <div class="sp-section">
         <div class="sp-title">Position</div>

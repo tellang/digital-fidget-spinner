@@ -12,6 +12,8 @@ class Settings {
     autoStart: true,
     autoTheme: false,
     resolution: "large",
+    minimizeToTray: true,
+    autoUpdate: true,
   };
   #listeners = new Set();
   #loaded = false;

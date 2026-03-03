@@ -28,7 +28,11 @@ document.addEventListener("keydown", function(e) {
       menu.style.display = "none";
       return;
     }
-    window.__TAURI__.core.invoke("exit_app");
+    if (settings.get("minimizeToTray")) {
+      window.__TAURI__.webviewWindow.getCurrentWebviewWindow().hide();
+    } else {
+      window.__TAURI__.core.invoke("exit_app");
+    }
   }
 });
 

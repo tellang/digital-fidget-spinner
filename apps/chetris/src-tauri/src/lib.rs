@@ -1,8 +1,7 @@
 use tauri::{
     Emitter, Manager,
-    menu::{MenuBuilder, MenuItem, SubmenuBuilder},
-    tray::TrayIconBuilder,
-    PhysicalPosition, PhysicalSize,
+    tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState},
+    LogicalPosition, PhysicalPosition, PhysicalSize,
 };
 use rdev::{listen, EventType};
 use serde_json::Value;
@@ -64,8 +63,26 @@ fn save_settings(json: String) {
 #[tauri::command]
 fn open_settings_window(app: tauri::AppHandle, x: i32, y: i32) {
     if let Some(win) = app.get_webview_window("settings") {
-        let _ = win.set_position(PhysicalPosition::new(x, y));
+        // 설정 윈도우 크기 (논리 픽셀)
+        let (sw, sh) = (300_i32, 520_i32);
+
+        // 화면 크기 (논리 픽셀로 변환)
+        let (vw, vh) = app.get_webview_window("main")
+            .and_then(|w| w.current_monitor().ok().flatten())
+            .map(|m| {
+                let s = m.scale_factor();
+                ((m.size().width as f64 / s) as i32, (m.size().height as f64 / s) as i32)
+            })
+            .unwrap_or((1920, 1080));
+
+        // 스마트 포지셔닝: 공간이 부족한 방향은 반대로 플립
+        let adj_x = if x + sw > vw { x - sw } else { x };
+        let adj_y = if y + sh > vh { y - sh } else { y };
+
+        let pos = LogicalPosition::new(adj_x.max(0), adj_y.max(0));
+        let _ = win.set_position(pos.clone());
         let _ = win.show();
+        let _ = win.set_position(pos);
         let _ = win.set_focus();
     }
 }
@@ -115,150 +132,111 @@ pub fn run() {
             let rg = resize_guard.clone();
             let lw = last_width.clone();
             let win_for_resize = window.clone();
+            let win_for_close = window.clone();
             window.on_window_event(move |event| {
-                if let tauri::WindowEvent::Resized(size) = event {
-                    // 재귀 방지 (set_size → Resized 이벤트 재발 차단)
-                    if rg.load(Ordering::SeqCst) { return; }
-
-                    let aspect: f64 = 164.0 / 252.0;
-                    let mut prev_w = lw.lock().unwrap();
-
-                    let (new_w, new_h) = if size.width != *prev_w {
-                        // 너비 변경 (좌/우/모서리 드래그) → 높이 조정
-                        (size.width, (size.width as f64 / aspect).round() as u32)
-                    } else {
-                        // 높이만 변경 (상/하 드래그) → 너비 조정
-                        ((size.height as f64 * aspect).round() as u32, size.height)
-                    };
-
-                    *prev_w = new_w;
-
-                    if new_w != size.width || new_h != size.height {
-                        rg.store(true, Ordering::SeqCst);
-                        let _ = win_for_resize.set_size(PhysicalSize::new(new_w, new_h));
-                        rg.store(false, Ordering::SeqCst);
+                match event {
+                    tauri::WindowEvent::Resized(size) => {
+                        if rg.load(Ordering::SeqCst) { return; }
+                        let aspect: f64 = 164.0 / 252.0;
+                        let mut prev_w = lw.lock().unwrap();
+                        let (new_w, new_h) = if size.width != *prev_w {
+                            (size.width, (size.width as f64 / aspect).round() as u32)
+                        } else {
+                            ((size.height as f64 * aspect).round() as u32, size.height)
+                        };
+                        *prev_w = new_w;
+                        if new_w != size.width || new_h != size.height {
+                            rg.store(true, Ordering::SeqCst);
+                            let _ = win_for_resize.set_size(PhysicalSize::new(new_w, new_h));
+                            rg.store(false, Ordering::SeqCst);
+                        }
                     }
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        // 트레이 최소화 설정 시 닫기 대신 숨김
+                        let minimize = fs::read_to_string(settings_path())
+                            .ok()
+                            .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+                            .and_then(|v| v.get("minimizeToTray").and_then(|b| b.as_bool()))
+                            .unwrap_or(true);
+                        if minimize {
+                            api.prevent_close();
+                            let _ = win_for_close.hide();
+                        }
+                    }
+                    _ => {}
                 }
             });
 
-            // 글로벌 키보드 훅 (실패 시 자동 재시도 — 모니터 전환 등 대응)
-            let app_handle = app.handle().clone();
+            // 글로벌 키보드 훅 (채널 분리 — IME 간섭 방지)
+            // 훅 콜백은 channel send만 (나노초), emit은 별도 스레드에서 처리
+            let (tx, rx) = std::sync::mpsc::channel::<()>();
+            let emit_handle = app.handle().clone();
+            thread::spawn(move || {
+                while rx.recv().is_ok() {
+                    let _ = emit_handle.emit("global-keypress", ());
+                }
+            });
             thread::spawn(move || {
                 loop {
-                    let handle = app_handle.clone();
-                    let result = listen(move |event| {
-                        if let EventType::KeyPress(_key) = event.event_type {
-                            let _ = handle.emit("global-keypress", ());
+                    let tx_clone = tx.clone();
+                    let _ = listen(move |event| {
+                        if let EventType::KeyPress(_) = event.event_type {
+                            let _ = tx_clone.send(());
                         }
                     });
-                    if result.is_ok() { break; }
-                    // 리스너 실패 시 1초 후 재시도
+                    // 훅 종료 시 1초 후 재등록
                     thread::sleep(std::time::Duration::from_secs(1));
                 }
             });
 
-            // === 트레이 메뉴 ===
-
-            // 위치 서브메뉴
-            let pos_tl = MenuItem::with_id(app, "pos_tl", "↖ 좌상단", true, None::<&str>)?;
-            let pos_tr = MenuItem::with_id(app, "pos_tr", "↗ 우상단", true, None::<&str>)?;
-            let pos_bl = MenuItem::with_id(app, "pos_bl", "↙ 좌하단", true, None::<&str>)?;
-            let pos_br = MenuItem::with_id(app, "pos_br", "↘ 우하단", true, None::<&str>)?;
-            let pos_submenu = SubmenuBuilder::new(app, "위치 변경")
-                .items(&[&pos_tl, &pos_tr, &pos_bl, &pos_br])
-                .build()?;
-
-            // 테마 서브메뉴
-            let theme_cyberpunk = MenuItem::with_id(app, "theme_cyberpunk", "🌃 Cyberpunk Neon", true, None::<&str>)?;
-            let theme_gameboy = MenuItem::with_id(app, "theme_gameboy", "🎮 Game Boy", true, None::<&str>)?;
-            let theme_pastel = MenuItem::with_id(app, "theme_pastel", "🌸 Pastel Dream", true, None::<&str>)?;
-            let theme_matrix = MenuItem::with_id(app, "theme_matrix", "💊 Matrix", true, None::<&str>)?;
-            let theme_glass = MenuItem::with_id(app, "theme_glass", "🪟 Glassmorphism", true, None::<&str>)?;
-            let theme_retro = MenuItem::with_id(app, "theme_retro", "👾 Retro Arcade", true, None::<&str>)?;
-            let theme_submenu = SubmenuBuilder::new(app, "테마")
-                .items(&[&theme_cyberpunk, &theme_gameboy, &theme_pastel, &theme_matrix, &theme_glass, &theme_retro])
-                .build()?;
-
-            // 설정 서브메뉴
-            let toggle_particles = MenuItem::with_id(app, "toggle_particles", "✨ 파티클 효과", true, None::<&str>)?;
-            let toggle_shake = MenuItem::with_id(app, "toggle_shake", "📳 진동 효과", true, None::<&str>)?;
-            let toggle_fade = MenuItem::with_id(app, "toggle_autoFade", "👻 자동 페이드", true, None::<&str>)?;
-            let toggle_autostart = MenuItem::with_id(app, "toggle_autoStart", "🚀 윈도우 시작 등록", true, None::<&str>)?;
-            let settings_submenu = SubmenuBuilder::new(app, "설정")
-                .items(&[&toggle_particles, &toggle_shake, &toggle_fade, &toggle_autostart])
-                .build()?;
-
-            let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-
-            let tray_menu = MenuBuilder::new(app)
-                .items(&[&pos_submenu, &theme_submenu, &settings_submenu, &quit_item])
-                .build()?;
-
+            // === 트레이 아이콘 (좌클릭: 토글, 우클릭: 설정 윈도우) ===
             let icon = app.default_window_icon().unwrap().clone();
 
             let _tray = TrayIconBuilder::new()
                 .icon(icon)
                 .tooltip("CHATRIS - 채팅 반응형 테트리스")
-                .menu(&tray_menu)
-                .on_menu_event(|app, event| {
-                    let id = event.id().0.as_str();
-                    match id {
-                        "quit" => app.exit(0),
-                        _ if id.starts_with("pos_") => {
-                            if let Some(win) = app.get_webview_window("main") {
-                                position_window(&win, &id[4..]);
-                            }
-                        }
-                        _ if id.starts_with("theme_") => {
-                            let theme_id = &id[6..];
-                            let _ = app.emit("set-theme", theme_id.to_string());
-                        }
-                        _ if id.starts_with("toggle_") => {
-                            let key = &id[7..];
-                            // 설정 파일에서 현재 값 읽고 반전
-                            let current = fs::read_to_string(settings_path())
-                                .ok()
-                                .and_then(|s| serde_json::from_str::<Value>(&s).ok())
-                                .and_then(|v| v.get(key).and_then(|b| b.as_bool()))
-                                .unwrap_or(true);
-                            let new_val = !current;
-
-                            // 자동 시작은 별도 처리
-                            if key == "autoStart" {
-                                let _ = tauri::async_runtime::spawn(async move {
-                                    // set_auto_start은 동기지만 async 블록에서 호출
-                                });
-                                #[cfg(target_os = "windows")]
-                                {
-                                    use std::process::Command;
-                                    let exe = std::env::current_exe().unwrap_or_default();
-                                    let exe_str = exe.to_string_lossy().to_string();
-                                    if new_val {
-                                        let _ = Command::new("reg")
-                                            .args(["add", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-                                                   "/v", "CHATRIS", "/t", "REG_SZ", "/d", &exe_str, "/f"])
-                                            .output();
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click { button, button_state, position, .. } = &event {
+                        if *button_state != MouseButtonState::Up { return; }
+                        let app = tray.app_handle();
+                        match button {
+                            MouseButton::Left => {
+                                if let Some(win) = app.get_webview_window("main") {
+                                    if win.is_visible().unwrap_or(false) {
+                                        let _ = win.hide();
                                     } else {
-                                        let _ = Command::new("reg")
-                                            .args(["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-                                                   "/v", "CHATRIS", "/f"])
-                                            .output();
+                                        let _ = win.show();
+                                        let _ = win.set_focus();
                                     }
                                 }
                             }
-
-                            let payload = serde_json::json!({ "key": key, "value": new_val });
-                            let _ = app.emit("toggle-setting", payload);
+                            MouseButton::Right => {
+                                if let Some(win) = app.get_webview_window("settings") {
+                                    let size = win.outer_size().unwrap_or(PhysicalSize::new(300, 520));
+                                    let _ = win.set_position(PhysicalPosition::new(
+                                        (position.x as i32 - size.width as i32).max(0),
+                                        (position.y as i32 - size.height as i32).max(0),
+                                    ));
+                                    let _ = win.show();
+                                    let _ = win.set_focus();
+                                }
+                            }
+                            _ => {}
                         }
-                        _ => {}
                     }
                 })
                 .build(app)?;
 
-            // 자동 업데이트 체크 (시작 5초 후, 프론트엔드에 알림)
+            // 자동 업데이트 체크 (시작 5초 후, 설정 확인 후 프론트엔드에 알림)
             let update_handle = app.handle().clone();
             thread::spawn(move || {
                 thread::sleep(std::time::Duration::from_secs(5));
+                let auto_update = fs::read_to_string(settings_path())
+                    .ok()
+                    .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+                    .and_then(|v| v.get("autoUpdate").and_then(|b| b.as_bool()))
+                    .unwrap_or(true);
+                if !auto_update { return; }
                 tauri::async_runtime::block_on(async move {
                     let Ok(updater) = update_handle.updater() else { return };
                     let Ok(Some(update)) = updater.check().await else { return };
