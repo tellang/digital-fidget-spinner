@@ -52,10 +52,44 @@ jobs:
           releaseDraft: false
           prerelease: false
 
-      - name: Upload portable exe
+      - name: Upload portable exe + updater artifacts
         shell: bash
         run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+
+          # 포터블 exe
           cp src-tauri/target/release/chatris.exe "CHATRIS-portable.exe"
-          gh release upload "${{ github.ref_name }}" "CHATRIS-portable.exe" --clobber
+          gh release upload "$TAG" "CHATRIS-portable.exe" --clobber
+
+          # updater용 nsis.zip + sig 업로드
+          NSIS_ZIP=$(ls src-tauri/target/release/bundle/nsis/*.nsis.zip 2>/dev/null | head -1)
+          NSIS_SIG=$(ls src-tauri/target/release/bundle/nsis/*.nsis.zip.sig 2>/dev/null | head -1)
+
+          if [ -n "$NSIS_ZIP" ] && [ -n "$NSIS_SIG" ]; then
+            NSIS_NAME=$(basename "$NSIS_ZIP")
+            gh release upload "$TAG" "$NSIS_ZIP" --clobber
+            gh release upload "$TAG" "$NSIS_SIG" --clobber
+
+            # latest.json 생성
+            SIG_CONTENT=$(cat "$NSIS_SIG")
+            cat > latest.json << ENDJSON
+          {
+            "version": "$VERSION",
+            "notes": "CHATRIS $TAG",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "$SIG_CONTENT",
+                "url": "https://github.com/tellang/digital-fidget-spinner/releases/download/$TAG/$NSIS_NAME"
+              }
+            }
+          }
+          ENDJSON
+            gh release upload "$TAG" latest.json --clobber
+            echo "✓ latest.json uploaded with nsis.zip"
+          else
+            echo "⚠ nsis.zip or sig not found, skipping updater"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
