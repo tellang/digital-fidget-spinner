@@ -55,6 +55,7 @@ jobs:
       - name: Upload portable exe + updater artifacts
         shell: bash
         run: |
+          set -x
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
 
@@ -63,8 +64,11 @@ jobs:
           gh release upload "$TAG" "CHATRIS-portable.exe" --clobber
 
           # updater용 nsis.zip + sig 업로드
-          NSIS_ZIP=$(ls src-tauri/target/release/bundle/nsis/*.nsis.zip 2>/dev/null | head -1)
-          NSIS_SIG=$(ls src-tauri/target/release/bundle/nsis/*.nsis.zip.sig 2>/dev/null | head -1)
+          NSIS_ZIP=$(find src-tauri/target/release/bundle/nsis -name "*.nsis.zip" 2>/dev/null | head -1)
+          NSIS_SIG=$(find src-tauri/target/release/bundle/nsis -name "*.nsis.zip.sig" 2>/dev/null | head -1)
+
+          echo "NSIS_ZIP=$NSIS_ZIP"
+          echo "NSIS_SIG=$NSIS_SIG"
 
           if [ -n "$NSIS_ZIP" ] && [ -n "$NSIS_SIG" ]; then
             NSIS_NAME=$(basename "$NSIS_ZIP")
@@ -73,21 +77,15 @@ jobs:
 
             # latest.json 생성
             SIG_CONTENT=$(cat "$NSIS_SIG")
-            cat > latest.json << ENDJSON
-          {
-            "version": "$VERSION",
-            "notes": "CHATRIS $TAG",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "$SIG_CONTENT",
-                "url": "https://github.com/tellang/digital-fidget-spinner/releases/download/$TAG/$NSIS_NAME"
-              }
-            }
-          }
-          ENDJSON
+            PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            DOWNLOAD_URL="https://github.com/tellang/digital-fidget-spinner/releases/download/$TAG/$NSIS_NAME"
+
+            printf '{\n  "version": "%s",\n  "notes": "CHATRIS %s",\n  "pub_date": "%s",\n  "platforms": {\n    "windows-x86_64": {\n      "signature": "%s",\n      "url": "%s"\n    }\n  }\n}\n' \
+              "$VERSION" "$TAG" "$PUB_DATE" "$SIG_CONTENT" "$DOWNLOAD_URL" > latest.json
+
+            cat latest.json
             gh release upload "$TAG" latest.json --clobber
-            echo "✓ latest.json uploaded with nsis.zip"
+            echo "✓ latest.json uploaded"
           else
             echo "⚠ nsis.zip or sig not found, skipping updater"
           fi
