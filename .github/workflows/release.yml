@@ -26,6 +26,12 @@ jobs:
 
       - run: npm install
 
+      - name: Verify key hash
+        shell: bash
+        run: echo -n "$TAURI_SIGNING_PRIVATE_KEY" | sha256sum
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
