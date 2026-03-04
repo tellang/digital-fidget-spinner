@@ -26,22 +26,12 @@ jobs:
 
       - run: npm install
 
-      - name: Test signing locally
-        shell: bash
-        run: |
-          echo "test" > /tmp/testfile.txt
-          env | grep -i TAURI || echo "no TAURI vars"
-          npx tauri signer sign /tmp/testfile.txt 2>&1 || echo "sign failed"
-          echo "=== tauri-cli version ==="
-          npx tauri --version
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/chetris
           tagName: ${{ github.ref_name }}
@@ -65,7 +55,6 @@ jobs:
       - name: Upload portable exe + updater artifacts
         shell: bash
         run: |
-          set -x
           TAG="${{ github.ref_name }}"
           VERSION="${TAG#v}"
 
@@ -73,17 +62,10 @@ jobs:
           cp src-tauri/target/release/chatris.exe "CHATRIS-portable.exe"
           gh release upload "$TAG" "CHATRIS-portable.exe" --clobber
 
-          # 디버그: nsis 디렉토리 내용 확인
-          echo "=== nsis bundle directory ==="
-          ls -la src-tauri/target/release/bundle/nsis/ || echo "nsis dir not found"
-
-          # updater용 nsis.zip + sig (파일명 직접 구성)
+          # updater용 nsis.zip + sig
           NSIS_DIR="src-tauri/target/release/bundle/nsis"
           NSIS_ZIP="${NSIS_DIR}/CHATRIS_${VERSION}_x64-setup.nsis.zip"
           NSIS_SIG="${NSIS_ZIP}.sig"
-
-          echo "NSIS_ZIP=$NSIS_ZIP (exists: $(test -f "$NSIS_ZIP" && echo yes || echo no))"
-          echo "NSIS_SIG=$NSIS_SIG (exists: $(test -f "$NSIS_SIG" && echo yes || echo no))"
 
           if [ -f "$NSIS_ZIP" ] && [ -f "$NSIS_SIG" ]; then
             NSIS_NAME=$(basename "$NSIS_ZIP")
