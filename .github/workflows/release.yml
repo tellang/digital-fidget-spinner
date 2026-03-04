@@ -26,9 +26,14 @@ jobs:
 
       - run: npm install
 
-      - name: Verify key hash
+      - name: Test signing locally
         shell: bash
-        run: echo -n "$TAURI_SIGNING_PRIVATE_KEY" | sha256sum
+        run: |
+          echo "test" > /tmp/testfile.txt
+          env | grep -i TAURI || echo "no TAURI vars"
+          npx tauri signer sign /tmp/testfile.txt 2>&1 || echo "sign failed"
+          echo "=== tauri-cli version ==="
+          npx tauri --version
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
