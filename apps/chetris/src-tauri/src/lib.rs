@@ -176,16 +176,25 @@ pub fn run() {
                     let _ = emit_handle.emit("global-keypress", ());
                 }
             });
+            // 글로벌 키보드 훅 스레드 (자동 재등록 + 프론트엔드 상태 알림)
+            let hook_handle = app.handle().clone();
             thread::spawn(move || {
+                let mut fail_count: u32 = 0;
                 loop {
                     let tx_clone = tx.clone();
-                    let _ = listen(move |event| {
+                    let _ = hook_handle.emit("hook-status", "active");
+                    match listen(move |event| {
                         if let EventType::KeyPress(_) = event.event_type {
                             let _ = tx_clone.send(());
                         }
-                    });
-                    // 훅 종료 시 1초 후 재등록
-                    thread::sleep(std::time::Duration::from_secs(1));
+                    }) {
+                        Ok(_) => { fail_count = 0; }
+                        Err(_) => { fail_count += 1; }
+                    }
+                    let _ = hook_handle.emit("hook-status", "reconnecting");
+                    // 빠른 재등록: 50ms → 100ms → 200ms → 최대 1초
+                    let delay = std::cmp::min(50 * 2_u64.pow(fail_count.min(4)), 1000);
+                    thread::sleep(std::time::Duration::from_millis(delay));
                 }
             });
 

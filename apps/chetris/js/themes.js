@@ -84,15 +84,14 @@ class ThemeRegistry {
     if (vignette) vignette.style.opacity = t.effects.vignette ? "1" : "0";
   }
 
-  // bg 색상에서 상대 밝기 계산
+  // bg 색상에서 상대 밝기 계산 (DOM 조작 없이 hex 직접 파싱)
   static #luminance(color) {
-    const el = document.createElement("div");
-    el.style.color = color;
-    document.body.appendChild(el);
-    const rgb = getComputedStyle(el).color.match(/\d+/g);
-    el.remove();
-    if (!rgb) return 0;
-    const [r, g, b] = rgb.map(c => { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); });
+    const hex = color.replace("#", "");
+    if (hex.length < 6) return 0;
+    const toLinear = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    const r = toLinear(parseInt(hex.slice(0, 2), 16) / 255);
+    const g = toLinear(parseInt(hex.slice(2, 4), 16) / 255);
+    const b = toLinear(parseInt(hex.slice(4, 6), 16) / 255);
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 

@@ -58,10 +58,29 @@ class InputHandler {
 
     // Tauri 이벤트 리스너
     this._unlisteners = [];
+    this._hookAlive = false;
+    this._lastHookEvent = 0;
     if (window.__TAURI__) {
       // 글로벌 키보드 훅 (포커스 없이도 동작)
       window.__TAURI__.event.listen("global-keypress", () => {
         this._onInput();
+        this._lastHookEvent = performance.now();
+        this._hookAlive = true;
+      }).then((u) => this._unlisteners.push(u));
+
+      // 훅 상태 모니터링 + 시각적 피드백
+      window.__TAURI__.event.listen("hook-status", (e) => {
+        const status = e.payload;
+        const hint = document.getElementById("hint");
+        if (status === "active") {
+          this._hookAlive = true;
+          if (hint) hint.textContent = "⌨ TYPE TO ACCELERATE";
+          console.log("[CHATRIS] 키보드 훅 활성");
+        } else if (status === "reconnecting") {
+          this._hookAlive = false;
+          if (hint) hint.textContent = "⟳ RECONNECTING...";
+          console.warn("[CHATRIS] 키보드 훅 재연결 중...");
+        }
       }).then((u) => this._unlisteners.push(u));
 
       // 트레이 메뉴 테마 변경
