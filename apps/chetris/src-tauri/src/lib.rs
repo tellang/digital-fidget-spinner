@@ -89,21 +89,42 @@ fn open_settings_window(app: tauri::AppHandle, x: i32, y: i32) {
 
 #[tauri::command]
 fn set_auto_start(enable: bool) {
-    // Windows 시작 프로그램 등록 (레지스트리)
+    // Windows 자동 시작: 레지스트리 Run 키 대신 작업 스케줄러 사용
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
+
+        const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
+        const TASK_NAME: &str = "CHATRIS";
+
+        // 기존 레지스트리 자동 시작 항목이 남아 있으면 정리
+        let _ = Command::new("reg")
+            .args(["delete", RUN_KEY, "/v", TASK_NAME, "/f"])
+            .output();
+
         let exe = std::env::current_exe().unwrap_or_default();
-        let exe_str = exe.to_string_lossy();
+        let exe_str = exe.to_string_lossy().to_string();
         if enable {
-            let _ = Command::new("reg")
-                .args(["add", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-                       "/v", "CHATRIS", "/t", "REG_SZ", "/d", &exe_str, "/f"])
+            // 로그인 시 최고 권한으로 실행되도록 작업 등록
+            let exe_arg = format!("\"{exe_str}\"");
+            let _ = Command::new("schtasks")
+                .args([
+                    "/create",
+                    "/tn",
+                    TASK_NAME,
+                    "/tr",
+                    &exe_arg,
+                    "/sc",
+                    "onlogon",
+                    "/rl",
+                    "highest",
+                    "/f",
+                ])
                 .output();
         } else {
-            let _ = Command::new("reg")
-                .args(["delete", r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run",
-                       "/v", "CHATRIS", "/f"])
+            // 등록된 자동 시작 작업 제거
+            let _ = Command::new("schtasks")
+                .args(["/delete", "/tn", TASK_NAME, "/f"])
                 .output();
         }
     }
